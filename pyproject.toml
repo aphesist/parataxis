@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "parataxis"
+version = "0.1.0"
+description = "Parallel lanes for one coding task on one GPU, with typed lane contracts, a test-gated merge and an ungated shadow merge as the control."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+# contraprova is the engine: the event log, kernel, gates, statistics, pricing and the SWE-bench Pro
+# harness. Pinned to the commit whose pre-registered lane results parataxis starts from.
+dependencies = [
+    "contraprova @ git+https://github.com/aphesist/contraprova@403caf23e1f9321e0244f3805b00a177476df4e0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "hypothesis>=6"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

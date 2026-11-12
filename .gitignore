@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.hypothesis/
+.venv/
+build/
+dist/
+.env
+*.log.jsonl
+runs/
+
+.claude/worktrees/
+.claude/settings.local.json
+
+# benchmark data (tasks, verifier files, repository sources): upstream licences, never committed
+data/
