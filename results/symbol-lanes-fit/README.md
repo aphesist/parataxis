@@ -47,6 +47,6 @@ python -m venv .venv && . .venv/bin/activate && pip install -e .   # installs co
 python scripts/fit_symbol_lanes.py --count-tokens                   # writes results/symbol-lanes-fit/fit-counted.json
 ```
 
-- **what it counts.** it uses the free count_tokens endpoint through contraprova's client, with `claude-haiku-5-5` as the lane worker's tokenizer. it counts each lane's own-file part exactly (its lane views as the lane sees them) and, for whole-file lanes, the largest touched file. the shared part stays the exact logged `d_lead` plus 400 tokens for the board. the estimate in `fit.json` is left untouched.
+- **what it counts.** it uses the free count_tokens endpoint through contraprova's client, with `claude-haiku-5-5` as the lane worker's tokenizer. it counts each lane's own-file part exactly (its lane views as the lane sees them) and, for whole-file lanes, every touched file, taking the largest by tokens. the shared part stays the exact logged `d_lead` plus 400 tokens for the board. the estimate in `fit.json` is left untouched.
 - **requirements.** the key comes from `PROJECTS_ANTHROPIC_KEY` or `ANTHROPIC_API_KEY`, read by contraprova and never printed. the scope files are fetched from raw.githubusercontent.com, or read from `data/sources/` if they are already cached.
-- **cost.** about 500 requests, all free; the endpoint is rate-limited, not billed.
+- **cost.** about 700 requests, all free; the endpoint is rate-limited, not billed.

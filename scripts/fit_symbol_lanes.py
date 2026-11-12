@@ -20,10 +20,10 @@ tokenizer differs, so the local pre-flight must re-count with that model's token
 
 Exact counts (``--count-tokens``). Each lane's own-file part (its lane views, as the lane would
 see them) is counted with the free count_tokens endpoint through contraprova's client, and the
-shared part stays the exact logged ``d_lead`` plus --board-tokens; whole-file lanes count each
-touched file. This needs the pinned contraprova installed and an API key in the environment
-(``PROJECTS_ANTHROPIC_KEY`` or ``ANTHROPIC_API_KEY``, read by contraprova, never printed). It is
-free but rate-limited (about 500 requests for the 37 tasks). Results go to ``fit-counted.json``,
+shared part stays the exact logged ``d_lead`` plus --board-tokens; for whole-file lanes every
+touched file is counted and the largest taken. This needs the pinned contraprova installed and an
+API key in the environment (``PROJECTS_ANTHROPIC_KEY`` or ``ANTHROPIC_API_KEY``, read by
+contraprova, never printed). It is free but rate-limited (about 700 requests for the 37 tasks). Results go to ``fit-counted.json``,
 leaving the estimate in ``fit.json`` untouched.
 
 Usage: python scripts/fit_symbol_lanes.py [--log results/swepro-lanes/main/log.jsonl]
@@ -145,6 +145,17 @@ def summarize(xs: list[float], nd: int = 1) -> dict:
             "max": round(max(xs), nd), "min": round(min(xs), nd)}
 
 
+def largest_file_tokens(paths, sources, count, scaled) -> int:
+    """The largest whole-file lane's own-file tokens. Counted: every file is counted and the max
+    taken, since the file with the most characters need not have the most tokens (JSON tokenizes
+    cheaper than JavaScript). Estimated: the calibrated characters/3 estimate of the largest."""
+    if not paths:
+        return 0
+    if count is not None:
+        return max(count(f"{p}\n```\n{sources[p]}\n```") for p in paths)
+    return scaled(max(est_tokens(sources[p], CPT) for p in paths))
+
+
 def make_counter(args):
     """None (estimate), or a callable text -> exact prompt tokens of one user message with it."""
     if args.fake_count:
@@ -225,11 +236,7 @@ def main(argv: list[str] | None = None) -> int:
         # per lane: the largest lane is the shared part plus the largest touched file in full
         touched_files = sorted({s.path for s in touched if s.path in sources})
         file_tokens = {p: est_tokens(sources[p], CPT) for p in touched_files}
-        if count is not None and file_tokens:
-            biggest = max(file_tokens, key=file_tokens.get)
-            file_lane_max = shared + count(f"{biggest}\n```\n{sources[biggest]}\n```")
-        else:
-            file_lane_max = shared + scaled(max(file_tokens.values(), default=0))
+        file_lane_max = shared + largest_file_tokens(touched_files, sources, count, scaled)
         file_share = (max(file_tokens.values()) / sum(file_tokens.values())) if file_tokens else 0.0
 
         # (b) symbol lanes over the touched units
