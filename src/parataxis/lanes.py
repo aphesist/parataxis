@@ -1,6 +1,6 @@
 """Contract Lanes (arm La) on SWE-bench Pro: planner, interface board, lanes, merges, blame, ladder.
 
-The pipeline (docs/lanes-plan.md section 2.1; the owner's design where it differs, noted below):
+The pipeline (contraprova docs/lanes-plan.md section 2.1; the owner's design where it differs, noted below):
 
 1. **Plan.** One Opus 5.5 request at low effort (fixed, pre-registered) sees the orchestrator's
    context (``ProHarness.lead_context``: statement, requirements, interface, outline, visible test
@@ -46,12 +46,17 @@ The pipeline (docs/lanes-plan.md section 2.1; the owner's design where it differ
    shipped only if its gates passed) and ``La-sonnet`` (the state the ladder reaches without the Opus
    step) split the governed result into parts.
 
-Events (docs/events.md): ``lane.planned``, ``interface.frozen``, ``interface.requested``,
+Events (contraprova docs/events.md): ``lane.planned``, ``interface.frozen``, ``interface.requested``,
 ``merge.decided``, ``coordination.detected``; lanes are kernel tasks ``La:<id>:<lane>``
 (``kind: lane``, ``max_attempts`` = ladder length, attempts are ladder steps) and the merge is the
 parent task ``La:<id>``. Every La request (planner, planner repair, lanes, edit repairs, lane
 repairs, escalations) is ``usage.recorded`` with ``arm: "La"``: all of it is La's cost, and the
 budget guard checks each request before it is sent.
+
+Moved from contraprova 403caf2 (``contraprova.harness.lanes``) with absolute imports; contraprova
+keeps its own frozen copy, which its pre-registered results hash. On import this module registers
+itself (and :mod:`parataxis.lanes_detect`) under the contraprova names, so the SWE-bench Pro harness,
+which imports ``.lanes`` lazily, runs parataxis's lane layer: see :func:`_route_contraprova`.
 """
 
 from __future__ import annotations
@@ -63,11 +68,11 @@ import re
 from dataclasses import dataclass, field, replace
 from typing import Any, Mapping, Sequence
 
-from ..contracts import DEFAULT_PROTECTED, LaneContract
-from ..gates import T0_VISIBLE, T1_PRIVATE
-from ..interfaces import FABLE, HAIKU, OPUS, SONNET, GateResult, Message, Submission
-from .arms import TaskContext, _gate_dict, format_files
-from .edits import EDIT_FORMAT, apply_edits, diff_to_blocks, format_blocks, parse_edits, scope_checker, unified_patch
+from contraprova.contracts import DEFAULT_PROTECTED, LaneContract
+from contraprova.gates import T0_VISIBLE, T1_PRIVATE
+from contraprova.interfaces import FABLE, HAIKU, OPUS, SONNET, GateResult, Message, Submission
+from contraprova.harness.arms import TaskContext, _gate_dict, format_files
+from contraprova.harness.edits import EDIT_FORMAT, apply_edits, diff_to_blocks, format_blocks, parse_edits, scope_checker, unified_patch
 from .lanes_detect import (
     Clash,
     added_lines,
@@ -81,9 +86,9 @@ from .lanes_detect import (
     regressions,
     unresolved_uses,
 )
-from .outline import render_outline
-from .polyglot import sha256_json, sha256_text
-from .swepro import CHARS_PER_TOKEN, TEST_PATTERNS, ProExercise, ProTestSplit, estimate_tokens, is_test_path
+from contraprova.harness.outline import render_outline
+from contraprova.harness.polyglot import sha256_json, sha256_text
+from contraprova.harness.swepro import CHARS_PER_TOKEN, TEST_PATTERNS, ProExercise, ProTestSplit, estimate_tokens, is_test_path
 
 LANE_ARM = "La"
 SHADOW_ARM = "La-shadow"
@@ -874,7 +879,7 @@ def _emit_clashes(h, tid: str, plan_id: str, clashes: Sequence[Clash], rnd: int 
 
 def _merged_payload(h, ex: ProExercise, tid: str, attempt: int, rnd: int, files: Mapping[str, str],
                     errors: Sequence[str], lanes: Mapping[str, int | None], mode: str) -> dict[str, Any]:
-    from ..gates import changed_lines
+    from contraprova.gates import changed_lines
 
     files = dict(files)
     return {"task_id": tid, "attempt": attempt, "model": "merge", "files": sorted(files),
@@ -888,7 +893,7 @@ def _merged_payload(h, ex: ProExercise, tid: str, attempt: int, rnd: int, files:
 
 def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfig | None = None) -> bool:
     """Arm La on one task (see the module docstring). Returns whether La solved it."""
-    from .swepro_arms import ProGates, ProSubmission
+    from contraprova.harness.swepro_arms import ProGates, ProSubmission
 
     cfg = cfg or getattr(h, "lane_config", None) or LaneConfig()
     tid = f"{LANE_ARM}:{ex.id}"
@@ -1127,7 +1132,7 @@ def conflicting_reply(ex: ProExercise, plan: LanePlan, lane_id: str) -> str | No
     """``lane_id``'s gold reply plus one out-of-scope block that rewrites another lane's file: the
     other lane's first gold block with its REPLACE text replaced by a syntax-breaking line. The
     governed merge must reject it; the shadow merge applies it."""
-    from .outline import JS_EXT, PY_EXT
+    from contraprova.harness.outline import JS_EXT, PY_EXT
 
     blocks = diff_to_blocks(ex.task.patch, ex.context.files)
     others = [b for b in blocks if b.search and b.path not in plan.lane(lane_id).files]
@@ -1232,8 +1237,8 @@ def lane_preflight(h, ex: ProExercise, ts: ProTestSplit, count_tokens, cfg: Lane
     of ``k`` lanes, priced with the plan's cost model (expected), and the worst case: the planner
     and its repair at ``max_tokens``, every lane through every ladder step at ``max_tokens`` with an
     edit repair each."""
-    from ..pricing import DEFAULT_TABLE, PER_MTOK, PRICE_TABLES
-    from .swepro import gold_size
+    from contraprova.pricing import DEFAULT_TABLE, PER_MTOK, PRICE_TABLES
+    from contraprova.harness.swepro import gold_size
 
     cfg = cfg or LaneConfig()
     a = a or LaneAssumptions()
@@ -1272,3 +1277,31 @@ def lane_preflight(h, ex: ProExercise, ts: ProTestSplit, count_tokens, cfg: Lane
             worst += usd(model, n2, mt) + usd(model, n2 + mt, mt)
     return LanePreflightRow(ex.id, kk, p_in, lane_in, lines, sum(parts.values()), worst,
                             {key: round(v, 6) for key, v in parts.items()})
+
+
+def _route_contraprova() -> None:
+    """Make contraprova's harness use this module instead of its frozen copy.
+
+    ``contraprova.harness.swepro_arms`` imports ``run_la`` and ``plan_reply`` from ``.lanes`` inside
+    functions and ``swepro_run`` imports lane names at module level. Registering this module under
+    ``contraprova.harness.lanes`` (and lanes_detect likewise) before either happens means one set of
+    classes and one implementation for the whole run. If contraprova's copy was already imported,
+    modules that bound its names keep them, so warn rather than mix silently."""
+    import sys
+    import warnings
+
+    import contraprova.harness as harness
+
+    from . import lanes_detect as _detect
+
+    for name, mod in (("lanes_detect", _detect), ("lanes", sys.modules[__name__])):
+        key = f"contraprova.harness.{name}"
+        prev = sys.modules.get(key)
+        if prev is not None and prev is not mod:
+            warnings.warn(f"{key} was imported before parataxis.lanes; modules bound to it keep "
+                          "contraprova's frozen copy", RuntimeWarning, stacklevel=2)
+        sys.modules[key] = mod
+        setattr(harness, name, mod)
+
+
+_route_contraprova()

@@ -11,7 +11,7 @@ from contraprova.analysis import LANES_PRIMARY, analyze, lane_metrics, lanes_rep
 from contraprova.events import EVENT_TYPES
 from contraprova.harness.arms import BudgetGuard
 from contraprova.harness.edits import diff_to_blocks, format_blocks, unified_patch
-from contraprova.harness.lanes import (
+from parataxis.lanes import (
     DEFAULT_LADDER,
     LANE_MODELS,
     LANE_SYSTEM,
@@ -35,7 +35,7 @@ from contraprova.harness.lanes import (
     single_lane_plan,
     task_interfaces,
 )
-from contraprova.harness.lanes_detect import (
+from parataxis.lanes_detect import (
     duplicated_work,
     interface_output_clashes,
     lane_round_clashes,

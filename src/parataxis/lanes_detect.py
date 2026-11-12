@@ -26,7 +26,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping, Sequence
 
-from .outline import JS_EXT, PY_EXT, outline_file
+from contraprova.harness.outline import JS_EXT, PY_EXT, outline_file
 
 CLASH_KINDS: tuple[str, ...] = (
     "overlapping_scope", "scope_violation", "interface_mismatch", "interface_change_request", "overwrite",
