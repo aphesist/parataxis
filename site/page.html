@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- parataxis's paper page, in the aphes.ist design system (aphesis design-system: system/page-types/paper).
+     site/page.html is the source; site/build.py fills in every result from results/swepro-lanes/main/analysis.json
+     and the honesty table from README.md, and writes site/index.html. The lab kit is pinned in site/vendor/lab-kit-v1 -->
+<title>parataxis · the lanes</title>
+<meta name="description" content="parataxis: parallel lanes for one coding task on one gpu, governed. its starting evidence, contraprova's pre-registered contract lanes study, and the local track it asks about next.">
+<meta name="color-scheme" content="light dark">
+<link rel="preload" href="vendor/lab-kit-v1/fonts/AphesisScript-VF.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="vendor/lab-kit-v1/fonts/SpecialElite-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="vendor/lab-kit-v1/lab.css">
+<script src="vendor/lab-kit-v1/lab.js" defer></script>
+<style>
+  /* the page's own layout, on the kit's tokens only. prefix: px- */
+  .px-meta { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .px-stack { display: grid; gap: var(--space-5); margin-top: var(--space-5); max-width: 760px; }
+  .lab-section > * + * { margin-top: var(--space-4); }
+  .lab-section > h3 { margin-top: var(--space-6); }
+  .lab-chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .lab-honesty td:first-child { min-width: 16em; }
+</style>
+</head>
+<body class="lab">
+<div class="lab-page">
+
+<header class="lab-header lab-header--sticky lab-header--blur">
+  <a class="lab-mark" href="https://aphes.ist/" aria-label="aphes.ist"></a>
+  <span class="lab-project">parataxis <span class="lab-gloss" lang="grc">παράταξις</span></span>
+  <nav class="lab-nav" aria-label="on this page">
+    <a href="#question">question</a><a href="#method">method</a><a href="#prereg">pre-registration</a><a href="#results">results</a><a href="#honesty">honesty</a><a href="#data">data</a>
+  </nav>
+  <div class="lab-controls">
+    <button class="lab-button" type="button" data-lab-toggle="theme">close the eye</button>
+    <button class="lab-button" type="button" data-lab-toggle="fog" aria-pressed="false">fog · off</button>
+  </div>
+</header>
+
+<main>
+<div class="lab-titles">
+  <span class="lab-gloss-title" lang="la">experimentum</span>
+  <h1 class="lab-title">the lanes</h1>
+  <p class="lab-lede">several lanes work on one coding task at once, each inside a typed contract, and their edits meet in a test-gated merge. on {n} fresh swe-bench pro tasks the governed lanes solved {la} and an ungated merge of the same first replies {shadow}. that study ran on the cloud api; the local track has not run.</p>
+  <div class="px-meta lab-meta">
+    <span>starting evidence: contraprova's contract lanes study, 2026-11-12</span>
+    <span class="lab-ev" data-ev="measured" data-tip="pre-registered, run by contraprova, copied here unchanged">pre-registered, run</span>
+    <span class="lab-ev" data-ev="hypothesis" data-tip="no local model has run; the plan waits for approval">local track: not run</span>
+  </div>
+</div>
+
+<section class="lab-section" id="question" aria-labelledby="question-h">
+  <h2 id="question-h">the question</h2>
+  <div class="lab-callout">
+    <span class="lab-callout-label">quaestio</span>
+    <p>on one consumer gpu, do parallel local lanes under contracts and a test-gated merge solve more tasks than an ungated merge of the same lane outputs, and how many test-passing tokens per second does that give?</p>
+  </div>
+  <p class="lab-prose">the control is a <b>shadow merge</b>: the same lane outputs, token for token, merged with no contracts, no gate and no repair. so the gap between them is what the governance buys, and nothing else: not a better model, not more tokens.</p>
+</section>
+
+<section class="lab-section" id="method" aria-labelledby="method-h">
+  <h2 id="method-h">method</h2>
+  <p class="lab-prose">a planner splits the task into lanes, each with a typed contract: the code it owns, the interfaces it provides and needs, its tests. an interface round freezes the signatures before any lane writes code. the lanes' edits meet in a test-gated merge, a failure is blamed on specific lanes, and only those lanes are repaired or escalated. every coordination failure is counted.</p>
+  <p class="lab-prose">the engine is <a href="https://github.com/aphesist/contraprova">contraprova</a>, pinned as a dependency: its event-sourced, hash-chained log with a single validating writer, its gates, statistics, pricing and the swe-bench pro harness. parataxis owns the lane layer, and adds symbol-level lanes: a lane owns functions, classes or methods rather than whole files, up to 8 lanes, with a scope gate that checks every changed line falls inside its spans.</p>
+  <div class="lab-table-wrap">
+    <table class="lab-table lab-table--dense">
+      <caption>the arms of the starting study (cloud api, contraprova) and of the local track (planned).</caption>
+      <thead><tr><th scope="col">arm</th><th scope="col">what it does</th><th scope="col">state</th></tr></thead>
+      <tbody>
+        <tr class="lab-ref-row"><th scope="row">La</th><td>contract lanes: haiku 5.5 lanes, an opus planner, governed merge, a haiku repair → sonnet → opus ladder</td><td>run, n = {n}</td></tr>
+        <tr><th scope="row">La-shadow</th><td>the same lanes' first replies, merged with no contracts, gate or repair</td><td>run, n = {n}</td></tr>
+        <tr><th scope="row">D</th><td>contraprova's governed cascade, one worker</td><td>run, n = {n}</td></tr>
+        <tr><th scope="row">l1</th><td>one local worker (qwen3.8-27b on one rented rtx 5090)</td><td>planned</td></tr>
+        <tr><th scope="row">la (local)</th><td>separate local lane contexts, governed against shadow</td><td>planned</td></tr>
+        <tr><th scope="row">lb-text, lb-kv</th><td>a shared blackboard; a shared kv cache (a time-boxed stretch)</td><td>planned</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="lab-section" id="prereg" aria-labelledby="prereg-h">
+  <h2 id="prereg-h">pre-registration</h2>
+  <p class="lab-prose">the starting study was pre-registered: <a href="https://github.com/aphesist/parataxis/blob/main/results/swepro-lanes/PREREG.md">PREREG.md</a> was written and committed before any paid request of the main run, on 2026-11-12 (contraprova commit 1ed672e), with its primary test fixed: La against La-shadow, exact mcnemar, holm m = 1, alpha 0.05. its probe had its own (<a href="https://github.com/aphesist/parataxis/blob/main/results/swepro-lanes/PREREG-probe.md">PREREG-probe.md</a>). the hashes it freezes refer to contraprova's paths, not to this repository's copy of the lane layer (<a href="https://github.com/aphesist/parataxis/blob/main/results/swepro-lanes/PROVENANCE.md">provenance</a>).</p>
+  <p class="lab-prose">the local track is not pre-registered yet. its plan commits a pre-registration before the main run (<a href="https://github.com/aphesist/parataxis/blob/main/docs/local-plan.md">docs/local-plan.md</a>, step 4).</p>
+</section>
+
+<section class="lab-section" id="results" aria-labelledby="results-h">
+  <h2 id="results-h">results</h2>
+  <div class="lab-callout lab-callout--alert">
+    <span class="lab-callout-label">starting evidence, not a parataxis run</span>
+    <p>these are contraprova's results on the cloud api, copied here unchanged. the question above, about local lanes on one gpu, has no result yet.</p>
+  </div>
+  <dl class="lab-stats">
+    <div class="lab-stat"><dt class="lab-stat-label">La · governed</dt><dd class="lab-stat-value num">{la}</dd><dd class="lab-stat-note">tasks solved</dd></div>
+    <div class="lab-stat"><dt class="lab-stat-label">La-shadow · ungated</dt><dd class="lab-stat-value num">{shadow}</dd><dd class="lab-stat-note">the same first replies</dd></div>
+    <div class="lab-stat lab-stat--ref"><dt class="lab-stat-label">governed − shadow</dt><dd class="lab-stat-value num">{diff}</dd><dd class="lab-stat-note">points {ci} · discordant {disc} · p = {p}</dd></div>
+  </dl>
+  <p class="lab-prose">the pre-registered null is rejected: governance pays. against contraprova's cascade (D, {d}) the lanes are level within the noise: {ladiff} points {laci}, p = {lap}, both near ceiling.</p>
+
+  <div class="px-stack">
+    <figure class="lab-chart">
+      <div class="lab-chart-head">
+        <h3>solve rate by arm</h3>
+        <ul class="lab-legend"><li class="lab-key lab-key--dot lab-ink">La, final</li><li class="lab-key lab-key--dot lab-c1">steps and comparisons</li><li class="lab-key lab-key--dot lab-dim">shadow</li><li class="lab-key lab-key--band lab-ink">95% wilson interval</li></ul>
+      </div>
+        <!--SOLVE-CHART-->
+      <figcaption>{n} paired tasks. the axis starts at 50%. B is derived from D's first try.</figcaption>
+    </figure>
+    <div class="lab-table-wrap">
+      <table class="lab-table lab-table--dense">
+        <caption>the same numbers.</caption>
+        <thead><tr><th scope="col">arm</th><th scope="col" class="num">solved</th><th scope="col" class="num">rate</th><th scope="col" class="num">95% wilson</th></tr></thead>
+        <tbody>
+<!--SOLVE-TABLE-->
+        </tbody>
+      </table>
+    </div>
+
+    <figure class="lab-chart">
+      <div class="lab-chart-head">
+        <h3>paired differences, in points</h3>
+        <ul class="lab-legend"><li class="lab-key lab-key--dot lab-ink">primary</li><li class="lab-key lab-key--dot lab-c1">secondary, unadjusted</li><li class="lab-key lab-key--rule">no difference</li></ul>
+      </div>
+        <!--DIFF-CHART-->
+      <figcaption>each row is a paired difference with its 95% bootstrap interval. only the first was pre-registered as the primary test; the rest are descriptive.</figcaption>
+    </figure>
+    <div class="lab-table-wrap">
+      <table class="lab-table lab-table--dense">
+        <caption>the same numbers, with the discordant pairs and the exact mcnemar p.</caption>
+        <thead><tr><th scope="col">contrast</th><th scope="col" class="num">points</th><th scope="col" class="num">95% ci</th><th scope="col" class="num">discordant</th><th scope="col" class="num">p</th></tr></thead>
+        <tbody>
+<!--DIFF-TABLE-->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h3>what it did not do</h3>
+  <ul class="lab-prose">
+    <li><b>it did not fan out.</b> the planner never chose more than 2 lanes. lanes owned whole files, and the largest lane held a median 80% of a task's code.</li>
+    <li><b>the planner was half the bill</b>, and on a local gpu the lanes cost almost nothing.</li>
+    <li><b>what this project adds: symbol-level lanes,</b> so a task can split into more than two. a $0 fit study on the same tasks estimates that every symbol lane prompt fits 24K tokens (largest lane per task: median 9.9K, at most 16.9K), against 20 of 37 tasks with whole-file lanes. it is an estimate, not a run.</li>
+  </ul>
+</section>
+
+<section class="lab-section" id="honesty" aria-labelledby="honesty-h">
+  <h2 id="honesty-h">what this rests on</h2>
+  <div class="lab-table-wrap">
+    <table class="lab-table lab-honesty">
+      <caption>the honesty table, as in the readme: every claim this project makes, and what kind of evidence stands behind it today.</caption>
+      <thead><tr><th scope="col">claim</th><th scope="col">rests on</th><th scope="col">basis</th></tr></thead>
+      <tbody>
+<!--HONESTY-->
+      </tbody>
+    </table>
+  </div>
+  <div class="lab-ev-key lab-legend" aria-label="key">
+    <span class="lab-ev" data-ev="measured">measured · observed directly</span>
+    <span class="lab-ev" data-ev="modelled">modelled · computed from what was measured</span>
+    <span class="lab-ev" data-ev="tested">tested · checked, and it held</span>
+    <span class="lab-ev" data-ev="hypothesis">hypothesis · not checked yet</span>
+  </div>
+  <p class="lab-prose">rows move from hypothesis or estimated to measured only when a result with its confidence interval is committed under <code>results/</code>.</p>
+</section>
+
+<section class="lab-section" id="data" aria-labelledby="data-h">
+  <h2 id="data-h">the data</h2>
+  <p class="lab-prose">the logs, reports and analyses are committed. the logs hold <code>contents_sha256</code> fields, never repository file contents. every number in the results above is read from <code>analysis.json</code> when this page is built.</p>
+  <div class="lab-table-wrap">
+    <table class="lab-table lab-table--dense">
+      <caption>files.</caption>
+      <thead><tr><th scope="col">path</th><th scope="col">what</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://github.com/aphesist/parataxis/tree/main/results/swepro-lanes/main">results/swepro-lanes/main/</a></td><td>the main study: log, report, analysis, pre-flight (contraprova's, copied unchanged)</td></tr>
+        <tr><td><a href="https://github.com/aphesist/parataxis/blob/main/results/swepro-lanes/PROVENANCE.md">results/swepro-lanes/PROVENANCE.md</a></td><td>where the copied files come from, and what their hashes refer to</td></tr>
+        <tr><td><a href="https://github.com/aphesist/parataxis/tree/main/results/symbol-lanes-fit">results/symbol-lanes-fit/</a></td><td>this project's $0 fit study</td></tr>
+        <tr><td><a href="https://github.com/aphesist/parataxis/blob/main/docs/design.md">docs/design.md</a>, <a href="https://github.com/aphesist/parataxis/blob/main/docs/local-plan.md">docs/local-plan.md</a></td><td>the local track and its plan</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <pre data-label="verify"><code>pip install -e ".[dev]"     <span class="c"># installs contraprova at the pinned commit</span>
+contraprova verify results/swepro-lanes/main/log.jsonl      <span class="c"># the chain, and every event replayed</span>
+contraprova report results/swepro-lanes/main/log.jsonl --lanes</code></pre>
+</section>
+</main>
+
+<footer class="lab-footer lab-meta">
+  <span>parataxis · the lanes</span>
+  <span>aphes.ist lab kit <span id="kit-version">1.1.0</span>, vendored in site/vendor/lab-kit-v1</span>
+  <span><a href="https://github.com/aphesist/parataxis">github</a> · apache-2.0</span>
+</footer>
+</div>
+</body>
+</html>
