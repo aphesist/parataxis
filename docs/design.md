@@ -88,7 +88,7 @@ l1 and la answer different questions:
   - nvfp4 has produced nan output on some setups.
 
   the fallbacks are n-gram speculation or sglang. whether vllm's prefix caching covers the deltanet recurrent state, so that a shared prefix is really prefilled once, is also unverified.
-- **window:** the per-sequence context, set as `max_model_len`, must hold the prompt, the output and any thinking. the fit study ([results/symbol-lanes-fit](../results/symbol-lanes-fit/README.md)) puts every lane prompt of 8 symbol lanes under 20.1K claude tokens on all 37 tasks, with median 9.9K for touched-unit lanes. a 32K window leaves about 12K for output and thinking on the worst task. the local tokenizer differs from claude's, so the day-1 smoke test re-counts.
+- **window:** the per-sequence context, set as `max_model_len`, must hold the prompt, the output and any thinking. the fit study ([results/symbol-lanes-fit](../results/symbol-lanes-fit/README.md)) puts every lane prompt of 8 symbol lanes under 21.6K claude tokens on all 37 tasks (exact count_tokens counts), with median 10.2K for touched-unit lanes. a 32K window leaves about 10K on the worst task, above the 8K output cap. the local tokenizer differs from claude's, so the day-1 smoke test re-counts.
 - **memory:** the weights take about half the card. what is left is kv cache, and N concurrent lanes × their context must fit in it. calibrating N measures this directly, instead of trusting a formula.
 
 ## metrics

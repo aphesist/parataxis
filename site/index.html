@@ -199,7 +199,7 @@
   <ul class="lab-prose">
     <li><b>it did not fan out.</b> the planner never chose more than 2 lanes. lanes owned whole files, and the largest lane held a median 80% of a task's code.</li>
     <li><b>the planner was half the bill</b>, and on a local gpu the lanes cost almost nothing.</li>
-    <li><b>what this project adds: symbol-level lanes,</b> so a task can split into more than two. a $0 fit study on the same tasks estimates that every symbol lane prompt fits 24K tokens (largest lane per task: median 9.9K, at most 16.9K), against 20 of 37 tasks with whole-file lanes. it is an estimate, not a run.</li>
+    <li><b>what this project adds: symbol-level lanes,</b> so a task can split into more than two. a $0 fit study on the same tasks, with exact count_tokens counts, finds that every symbol lane prompt fits 24K tokens (largest lane per task: median 10.2K, at most 17.1K), against 20 of 37 tasks with whole-file lanes. it is a token count with claude's tokenizer, not a run.</li>
   </ul>
 </section>
 
@@ -212,7 +212,7 @@
       <tbody>
         <tr><td>lane contracts and a test-gated merge beat an ungated merge of the same lane outputs (haiku lanes, cloud api)</td><td><span class="lab-ev" data-ev="measured">measured</span> (pre-registered, n=37, by contraprova)</td><td><a href="https://github.com/aphesist/parataxis/blob/main/results/swepro-lanes/main/README.md">results/swepro-lanes/main</a>: 36/37 vs 28/37, discordant 8:0, p = 0.008, +21.6 points [+8.1, +35.1]</td></tr>
         <tr><td>haiku lanes match contraprova's cascade in solve rate and cost</td><td><span class="lab-ev" data-ev="measured">measured</span> (inconclusive; n=37, both near ceiling)</td><td>36/37 vs 34/37, +5.4 points [0.0, +13.5], p = 0.50; cost per solved task ratio 1.07 [0.62, 1.76]</td></tr>
-        <tr><td>symbol-level lanes fit a 24K per-lane prompt on these tasks, up to 8 lanes</td><td>estimated (offline, characters/3 calibrated against logged exact counts; no ci, not count_tokens, not the local tokenizer)</td><td><a href="https://github.com/aphesist/parataxis/blob/main/results/symbol-lanes-fit/README.md">results/symbol-lanes-fit</a>: 37/37 within 24K, largest lane median 9.9K</td></tr>
+        <tr><td>symbol-level lanes fit a 24K per-lane prompt on these tasks, up to 8 lanes</td><td>estimated (exact count_tokens counts with claude's tokenizer, a deterministic count with no sampling and so no ci; the local tokenizer is not yet counted)</td><td><a href="https://github.com/aphesist/parataxis/blob/main/results/symbol-lanes-fit/README.md">results/symbol-lanes-fit</a>: 37/37 within 24K, largest lane median 10.2K, max 17.1K (21.6K when 8 lanes cover every unit)</td></tr>
         <tr><td>the lane layer behaves as it did in contraprova after the move</td><td>built</td><td>same logic, absolute imports and a module-routing hook; the full suite (<code>tests/test_lanes.py</code>, <code>tests/test_route.py</code>, <code>tests/test_symbols.py</code>) passed, 54 of 54, at 8729726 in a fresh venv with contraprova at 403caf2. it was run in the contraprova working session, because this session cannot execute contraprova</td></tr>
         <tr><td>symbol-level lanes solve as many tasks as whole-file lanes</td><td><span class="lab-ev" data-ev="hypothesis">hypothesis</span></td><td>la with symbol lanes vs the api study's file lanes, same tasks</td></tr>
         <tr><td>governed beats shadow with a local 27b lane worker</td><td><span class="lab-ev" data-ev="hypothesis">hypothesis</span></td><td>la vs la-shadow on the 37 tasks, one rtx 5090</td></tr>

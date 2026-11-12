@@ -28,7 +28,7 @@ contraprova's pre-registered contract lanes study, on 37 fresh multi-file swe-be
   - it sees them in full, with an outline of the rest of its files;
   - a scope gate checks that every changed line falls inside its spans;
   - there are up to 8 lanes, the count taken from the contract units, under a per-lane token target.
-- **the fit study** ([results/symbol-lanes-fit](results/symbol-lanes-fit/README.md), $0, estimated). on the 37 tasks, with symbol lanes, every lane prompt fits 24K tokens: the largest lane per task is a median 9.9K and at most 16.9K, and 20.1K when 8 lanes cover every unit. with whole-file lanes, only 20 of 37 tasks fit 24K, and the worst lane is 43.6K.
+- **the fit study** ([results/symbol-lanes-fit](results/symbol-lanes-fit/README.md), $0, exact count_tokens counts with claude's tokenizer). on the 37 tasks, with symbol lanes, every lane prompt fits 24K tokens: the largest lane per task is a median 10.2K and at most 17.1K, and 21.6K when 8 lanes cover every unit. with whole-file lanes, only 20 of 37 tasks fit 24K, and the worst lane is 43.8K. a local model's tokenizer will count differently.
 - **the local track** ([docs/design.md](docs/design.md)): qwen3.8-27b in nvfp4 with mtp, under vllm, on one rented rtx 5090. the arms:
   - l1, one local worker;
   - la, separate lane contexts;
@@ -50,7 +50,7 @@ every claim this project makes, and what kind of evidence stands behind it today
 |---|---|---|
 | lane contracts and a test-gated merge beat an ungated merge of the same lane outputs (haiku lanes, cloud api) | **measured** (pre-registered, n=37, by contraprova) | [results/swepro-lanes/main](results/swepro-lanes/main/README.md): 36/37 vs 28/37, discordant 8:0, p = 0.008, +21.6 points [+8.1, +35.1] |
 | haiku lanes match contraprova's cascade in solve rate and cost | **measured** (inconclusive; n=37, both near ceiling) | 36/37 vs 34/37, +5.4 points [0.0, +13.5], p = 0.50; cost per solved task ratio 1.07 [0.62, 1.76] |
-| symbol-level lanes fit a 24K per-lane prompt on these tasks, up to 8 lanes | estimated (offline, characters/3 calibrated against logged exact counts; no ci, not count_tokens, not the local tokenizer) | [results/symbol-lanes-fit](results/symbol-lanes-fit/README.md): 37/37 within 24K, largest lane median 9.9K |
+| symbol-level lanes fit a 24K per-lane prompt on these tasks, up to 8 lanes | estimated (exact count_tokens counts with claude's tokenizer, a deterministic count with no sampling and so no ci; the local tokenizer is not yet counted) | [results/symbol-lanes-fit](results/symbol-lanes-fit/README.md): 37/37 within 24K, largest lane median 10.2K, max 17.1K (21.6K when 8 lanes cover every unit) |
 | the lane layer behaves as it did in contraprova after the move | built | same logic, absolute imports and a module-routing hook; the full suite (`tests/test_lanes.py`, `tests/test_route.py`, `tests/test_symbols.py`) passed, 54 of 54, at 8729726 in a fresh venv with contraprova at 403caf2. it was run in the contraprova working session, because this session cannot execute contraprova |
 | symbol-level lanes solve as many tasks as whole-file lanes | **hypothesis** | la with symbol lanes vs the api study's file lanes, same tasks |
 | governed beats shadow with a local 27b lane worker | **hypothesis** | la vs la-shadow on the 37 tasks, one rtx 5090 |

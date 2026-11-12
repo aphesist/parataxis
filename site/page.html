@@ -140,7 +140,7 @@
   <ul class="lab-prose">
     <li><b>it did not fan out.</b> the planner never chose more than 2 lanes. lanes owned whole files, and the largest lane held a median 80% of a task's code.</li>
     <li><b>the planner was half the bill</b>, and on a local gpu the lanes cost almost nothing.</li>
-    <li><b>what this project adds: symbol-level lanes,</b> so a task can split into more than two. a $0 fit study on the same tasks estimates that every symbol lane prompt fits 24K tokens (largest lane per task: median 9.9K, at most 16.9K), against 20 of 37 tasks with whole-file lanes. it is an estimate, not a run.</li>
+    <li><b>what this project adds: symbol-level lanes,</b> so a task can split into more than two. a $0 fit study on the same tasks, with exact count_tokens counts, finds that every symbol lane prompt fits 24K tokens (largest lane per task: median 10.2K, at most 17.1K), against 20 of 37 tasks with whole-file lanes. it is a token count with claude's tokenizer, not a run.</li>
   </ul>
 </section>
 
