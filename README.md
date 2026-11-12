@@ -1,4 +1,8 @@
-# parataxis
+<div align="center">
+
+<a href="https://github.com/aphesist/parataxis"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/readme/header-dark.svg"><img src="assets/readme/header-light.svg" alt="parataxis: parallel lanes for one coding task on one gpu, governed." width="100%"></picture></a>
+
+</div>
 
 parallel lanes for one coding task on one gpu, governed. *parataxis* (παράταξις) is "placing side by side": several streams work on the same task at once, each inside a typed contract (the code it owns, the interfaces it provides and needs, its tests). an interface round freezes the signatures before any lane writes code. the lanes' edits meet in a test-gated merge, a failure is blamed on specific lanes, and only those lanes are repaired or escalated. every coordination failure is counted. the control is a **shadow merge**: the same lane outputs, token for token, merged with no contracts, no gate and no repair.
 
@@ -33,6 +37,11 @@ contraprova's pre-registered contract lanes study, on 37 fresh multi-file swe-be
 
   the headline is governed against shadow, plus test-gated tok/s.
 
+## pre-registration
+
+- **the starting evidence was pre-registered.** contraprova's [PREREG.md](results/swepro-lanes/PREREG.md) was written and committed before any paid request of the main run, on 2026-11-12 (contraprova commit 1ed672e); its probe has its own ([PREREG-probe.md](results/swepro-lanes/PREREG-probe.md)). the hashes it freezes refer to contraprova's paths, not to this repository's copy of the lane layer ([provenance](results/swepro-lanes/PROVENANCE.md)).
+- **the local track is not pre-registered yet.** its plan commits a pre-registration before the main run ([docs/local-plan.md](docs/local-plan.md), step 4).
+
 ## honesty table
 
 every claim this project makes, and what kind of evidence stands behind it today.
@@ -40,9 +49,9 @@ every claim this project makes, and what kind of evidence stands behind it today
 | claim | status | basis |
 |---|---|---|
 | lane contracts and a test-gated merge beat an ungated merge of the same lane outputs (haiku lanes, cloud api) | **measured** (pre-registered, n=37, by contraprova) | [results/swepro-lanes/main](results/swepro-lanes/main/README.md): 36/37 vs 28/37, discordant 8:0, p = 0.008, +21.6 points [+8.1, +35.1] |
-| haiku lanes match contraprova's cascade in solve rate and cost | **measured, inconclusive** (n=37, both near ceiling) | 36/37 vs 34/37, +5.4 points [0.0, +13.5], p = 0.50; cost per solved task ratio 1.07 [0.62, 1.76] |
-| symbol-level lanes fit a 24K per-lane prompt on these tasks, up to 8 lanes | **estimated** (offline, characters/3 calibrated against logged exact counts; no ci, not count_tokens, not the local tokenizer) | [results/symbol-lanes-fit](results/symbol-lanes-fit/README.md): 37/37 within 24K, largest lane median 9.9K |
-| the lane layer behaves as it did in contraprova after the move | **built, not yet run here** | same logic, absolute imports and a module-routing hook; `tests/test_lanes.py` and `tests/test_route.py` wait for a run with the pinned dependency |
+| haiku lanes match contraprova's cascade in solve rate and cost | **measured** (inconclusive; n=37, both near ceiling) | 36/37 vs 34/37, +5.4 points [0.0, +13.5], p = 0.50; cost per solved task ratio 1.07 [0.62, 1.76] |
+| symbol-level lanes fit a 24K per-lane prompt on these tasks, up to 8 lanes | estimated (offline, characters/3 calibrated against logged exact counts; no ci, not count_tokens, not the local tokenizer) | [results/symbol-lanes-fit](results/symbol-lanes-fit/README.md): 37/37 within 24K, largest lane median 9.9K |
+| the lane layer behaves as it did in contraprova after the move | built, not yet run here | same logic, absolute imports and a module-routing hook; `tests/test_lanes.py` and `tests/test_route.py` wait for a run with the pinned dependency |
 | symbol-level lanes solve as many tasks as whole-file lanes | **hypothesis** | la with symbol lanes vs the api study's file lanes, same tasks |
 | governed beats shadow with a local 27b lane worker | **hypothesis** | la vs la-shadow on the 37 tasks, one rtx 5090 |
 | parallel local lanes beat one local worker in solve rate or wall time | **hypothesis** | la vs l1 |
@@ -71,6 +80,10 @@ python -m parataxis.run --benchmark swepro --lanes --split lanes-probe --arms La
 
 a dry run reads the swe-bench pro task data from `data/`, as contraprova's [swe-bench pro guide](https://github.com/aphesist/contraprova/blob/main/docs/swepro.md) describes; it is never committed.
 
+## the data
+
+the logs, reports and analyses are under [`results/`](results): `swepro-lanes` is contraprova's study, copied unchanged ([provenance](results/swepro-lanes/PROVENANCE.md)); `symbol-lanes-fit` is this project's $0 fit study. the logs hold `contents_sha256` fields, never repository file contents. `contraprova verify results/swepro-lanes/main/log.jsonl` checks the chain and replays every event.
+
 ## layout
 
 - `src/parataxis/lanes.py`, `lanes_detect.py`: the lane layer (planner, interface board, governed and shadow merges, blame, ladder, detectors), moved from contraprova 403caf2 with its history.
@@ -82,4 +95,6 @@ a dry run reads the swe-bench pro task data from `data/`, as contraprova's [swe-
 
 ## licence
 
-apache 2.0, as contraprova.
+apache-2.0 ([LICENSE](LICENSE)), as contraprova.
+
+the pictures in `assets/readme/` are drawn with the aphes.ist readme kit and embed subsets of Aphesis Script (SIL Open Font License 1.1, reserved font name "Aphesis Script") and Special Elite (apache-2.0, © 2010 Astigmatic), and the project's icon, a mark of aphesist's that is not covered by this project's licence.
