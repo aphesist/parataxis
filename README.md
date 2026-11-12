@@ -11,8 +11,8 @@ the engine is [contraprova](https://github.com/aphesist/contraprova), pinned as 
 > on one consumer gpu, do parallel local lanes under contracts and a test-gated merge solve more tasks than an ungated merge of the same lane outputs, and how many test-passing tokens per second does that give?
 
 > **status:** phase 1, no spending yet.
-> - **done:** the lane layer moved here from contraprova with its history. symbol-level lanes (below file level) are built and tested offline. a $0 fit study ran on the 37 tasks of contraprova's lanes study.
-> - **not yet:** the moved lane suite has not been run in this repository. no local model has run. the local-track plan ([docs/local-plan.md](docs/local-plan.md), about $10 of rented gpu) waits for approval.
+> - **done:** the lane layer moved here from contraprova with its history, and the full suite passes (54 passed at 8729726, with contraprova installed at the pinned commit; run in the contraprova working session, because this session cannot execute contraprova). symbol-level lanes (below file level) are built and tested offline. a $0 fit study ran on the 37 tasks of contraprova's lanes study.
+> - **not yet:** no local model has run. the local-track plan ([docs/local-plan.md](docs/local-plan.md), about $10 of rented gpu) waits for approval.
 
 ## what it starts from
 
@@ -51,7 +51,7 @@ every claim this project makes, and what kind of evidence stands behind it today
 | lane contracts and a test-gated merge beat an ungated merge of the same lane outputs (haiku lanes, cloud api) | **measured** (pre-registered, n=37, by contraprova) | [results/swepro-lanes/main](results/swepro-lanes/main/README.md): 36/37 vs 28/37, discordant 8:0, p = 0.008, +21.6 points [+8.1, +35.1] |
 | haiku lanes match contraprova's cascade in solve rate and cost | **measured** (inconclusive; n=37, both near ceiling) | 36/37 vs 34/37, +5.4 points [0.0, +13.5], p = 0.50; cost per solved task ratio 1.07 [0.62, 1.76] |
 | symbol-level lanes fit a 24K per-lane prompt on these tasks, up to 8 lanes | estimated (offline, characters/3 calibrated against logged exact counts; no ci, not count_tokens, not the local tokenizer) | [results/symbol-lanes-fit](results/symbol-lanes-fit/README.md): 37/37 within 24K, largest lane median 9.9K |
-| the lane layer behaves as it did in contraprova after the move | built, not yet run here | same logic, absolute imports and a module-routing hook; `tests/test_lanes.py` and `tests/test_route.py` wait for a run with the pinned dependency |
+| the lane layer behaves as it did in contraprova after the move | built | same logic, absolute imports and a module-routing hook; the full suite (`tests/test_lanes.py`, `tests/test_route.py`, `tests/test_symbols.py`) passed, 54 of 54, at 8729726 in a fresh venv with contraprova at 403caf2. it was run in the contraprova working session, because this session cannot execute contraprova |
 | symbol-level lanes solve as many tasks as whole-file lanes | **hypothesis** | la with symbol lanes vs the api study's file lanes, same tasks |
 | governed beats shadow with a local 27b lane worker | **hypothesis** | la vs la-shadow on the 37 tasks, one rtx 5090 |
 | parallel local lanes beat one local worker in solve rate or wall time | **hypothesis** | la vs l1 |
