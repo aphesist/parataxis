@@ -8,7 +8,7 @@ the engine is [contraprova](https://github.com/aphesist/contraprova), pinned as 
 
 > **status:** phase 1, no spending yet.
 > - **done:** the lane layer moved here from contraprova with its history. symbol-level lanes (below file level) are built and tested offline. a $0 fit study ran on the 37 tasks of contraprova's lanes study.
-> - **not yet:** the moved lane suite has not been run in this repository. no local model has run. the local-track plan ([docs/local-plan.md](docs/local-plan.md), about $9 of gpu) waits for approval.
+> - **not yet:** the moved lane suite has not been run in this repository. no local model has run. the local-track plan ([docs/local-plan.md](docs/local-plan.md), about $10 of rented gpu) waits for approval.
 
 ## what it starts from
 
@@ -29,7 +29,7 @@ contraprova's pre-registered contract lanes study, on 37 fresh multi-file swe-be
   - l1, one local worker;
   - la, separate lane contexts;
   - lb-text, a shared blackboard;
-  - lb-kv, a shared kv cache (a time-boxed stretch).
+  - lb-kv, a shared kv cache (a time-boxed stretch behind a trigger; it needs a standard-attention model, because qwen3.8's deltanet layers have no kv cache to share).
 
   the headline is governed against shadow, plus test-gated tok/s.
 
@@ -47,7 +47,7 @@ every claim this project makes, and what kind of evidence stands behind it today
 | governed beats shadow with a local 27b lane worker | **hypothesis** | la vs la-shadow on the 37 tasks, one rtx 5090 |
 | parallel local lanes beat one local worker in solve rate or wall time | **hypothesis** | la vs l1 |
 | a shared text blackboard beats separate lane contexts | **hypothesis** | lb-text vs la |
-| a shared kv cache (hogwild!-style) works under governance | **hypothesis** (stretch) | lb-kv on the 12 probe tasks, exploratory |
+| a shared kv cache (hogwild!-style) works under governance | **hypothesis** (stretch) | lb-kv on the probe tasks against a matched la on the same model, exploratory |
 | test-gated tok/s on one rtx 5090 is a useful fraction of raw tok/s | **hypothesis** | both reported per arm |
 | results generalise beyond swe-bench pro | **hypothesis** | out of scope for now |
 
