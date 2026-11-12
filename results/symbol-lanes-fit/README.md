@@ -38,3 +38,15 @@
 - **local-model token counts.** a local model's tokenizer differs from claude's. the local pre-flight re-counts with the local model's tokenizer before anything runs.
 - **output.** a local window must hold the prompt and the lane's output. a lane's edit is usually a few hundred to a few thousand tokens, but a reasoning model's thinking adds to that, so budget the window as prompt + output + thinking.
 - **count_tokens.** the free endpoint was not called, because there is no api key here. the per-task calibration against logged exact counts stands in for it, and the script's numbers are estimates until a count_tokens or local-tokenizer pass replaces them.
+
+## the exact count (for a session with an api key)
+
+```sh
+git clone https://github.com/aphesist/parataxis && cd parataxis
+python -m venv .venv && . .venv/bin/activate && pip install -e .   # installs contraprova at the pinned commit
+python scripts/fit_symbol_lanes.py --count-tokens                   # writes results/symbol-lanes-fit/fit-counted.json
+```
+
+- **what it counts.** it uses the free count_tokens endpoint through contraprova's client, with `claude-haiku-5-5` as the lane worker's tokenizer. it counts each lane's own-file part exactly (its lane views as the lane sees them) and, for whole-file lanes, the largest touched file. the shared part stays the exact logged `d_lead` plus 400 tokens for the board. the estimate in `fit.json` is left untouched.
+- **requirements.** the key comes from `PROJECTS_ANTHROPIC_KEY` or `ANTHROPIC_API_KEY`, read by contraprova and never printed. the scope files are fetched from raw.githubusercontent.com, or read from `data/sources/` if they are already cached.
+- **cost.** about 500 requests, all free; the endpoint is rate-limited, not billed.

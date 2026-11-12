@@ -1,6 +1,8 @@
 {
  "summary": {
   "tasks": 37,
+  "counted": false,
+  "count_model": null,
   "target_tokens": 24000,
   "max_lanes": 8,
   "board_tokens": 400,

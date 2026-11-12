@@ -18,8 +18,17 @@ requirements, interface, outline of every scope file, visible test names) plus -
 the lane's contract and the interface board. These are Claude-tokenizer counts; a local model's
 tokenizer differs, so the local pre-flight must re-count with that model's tokenizer.
 
+Exact counts (``--count-tokens``). Each lane's own-file part (its lane views, as the lane would
+see them) is counted with the free count_tokens endpoint through contraprova's client, and the
+shared part stays the exact logged ``d_lead`` plus --board-tokens; whole-file lanes count each
+touched file. This needs the pinned contraprova installed and an API key in the environment
+(``PROJECTS_ANTHROPIC_KEY`` or ``ANTHROPIC_API_KEY``, read by contraprova, never printed). It is
+free but rate-limited (about 500 requests for the 37 tasks). Results go to ``fit-counted.json``,
+leaving the estimate in ``fit.json`` untouched.
+
 Usage: python scripts/fit_symbol_lanes.py [--log results/swepro-lanes/main/log.jsonl]
        [--out results/symbol-lanes-fit] [--target 24000] [--max-lanes 8] [--offline]
+       [--count-tokens [--count-model claude-haiku-5-5]]
 """
 
 from __future__ import annotations
@@ -39,6 +48,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from parataxis.symbols import (  # noqa: E402
     Span,
     est_tokens,
+    lane_view,
     plan_symbol_lanes,
     touched_units,
     units,
@@ -135,6 +145,27 @@ def summarize(xs: list[float], nd: int = 1) -> dict:
             "max": round(max(xs), nd), "min": round(min(xs), nd)}
 
 
+def make_counter(args):
+    """None (estimate), or a callable text -> exact prompt tokens of one user message with it."""
+    if args.fake_count:
+        return lambda text: est_tokens(text, 3.5)
+    if not args.count_tokens:
+        return None
+    from contraprova.interfaces import Message
+    from contraprova.llm import AnthropicClient
+
+    client = AnthropicClient("worker")
+    memo: dict[str, int] = {}
+
+    def count(text: str) -> int:
+        if text not in memo:
+            memo[text] = client.count_tokens(model=args.count_model, system="",
+                                             messages=[Message("user", text)])
+        return memo[text]
+
+    return count
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--log", type=Path, default=ROOT / "results/swepro-lanes/main/log.jsonl")
@@ -145,7 +176,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--board-tokens", type=int, default=400)
     ap.add_argument("--split-class-lines", type=int, default=120)
     ap.add_argument("--offline", action="store_true", help="use only cached sources")
+    ap.add_argument("--count-tokens", action="store_true",
+                    help="count lane views exactly with the free count_tokens endpoint (needs contraprova and a key)")
+    ap.add_argument("--count-model", default="claude-haiku-5-5", help="model whose tokenizer counts (the lane worker's)")
+    ap.add_argument("--fake-count", action="store_true", help=argparse.SUPPRESS)  # offline test of the counted path
     args = ap.parse_args(argv)
+    count = make_counter(args)
 
     rows = []
     for t in load_tasks(args.log):
@@ -177,25 +213,37 @@ def main(argv: list[str] | None = None) -> int:
         def scaled(n: float) -> int:
             return round(n * cal)
 
+        def lane_cost(ln) -> int:
+            """The lane's own-file part: calibrated estimate, or the exact count of its views."""
+            if count is None:
+                return scaled(ln.prompt_tokens)
+            views = [f"{p}\n```\n{lane_view(p, sources[p], ln.owned, units(p, sources[p], split_class_lines=args.split_class_lines))}\n```"
+                     for p in ln.files if p in sources]
+            return count("\n\n".join(views)) if views else 0
+
         # (a) whole-file lanes over the touched files (the API study's ownership unit), one file
         # per lane: the largest lane is the shared part plus the largest touched file in full
         touched_files = sorted({s.path for s in touched if s.path in sources})
         file_tokens = {p: est_tokens(sources[p], CPT) for p in touched_files}
-        file_lane_max = shared + scaled(max(file_tokens.values(), default=0))
+        if count is not None and file_tokens:
+            biggest = max(file_tokens, key=file_tokens.get)
+            file_lane_max = shared + count(f"{biggest}\n```\n{sources[biggest]}\n```")
+        else:
+            file_lane_max = shared + scaled(max(file_tokens.values(), default=0))
         file_share = (max(file_tokens.values()) / sum(file_tokens.values())) if file_tokens else 0.0
 
         # (b) symbol lanes over the touched units
         plan = plan_symbol_lanes(touched, sources, shared_tokens=0, target_tokens=args.target,
                                  max_lanes=args.max_lanes, chars_per_token=CPT,
                                  split_class_lines=args.split_class_lines)
-        lane_prompts = [shared + scaled(ln.prompt_tokens) for ln in plan.lanes]
+        lane_prompts = [shared + lane_cost(ln) for ln in plan.lanes]
 
         # (c) symbol lanes covering every unit of the scope files (no knowledge of the edit)
         all_units = [u for p, s in sources.items() for u in units(p, s, split_class_lines=args.split_class_lines)]
         cover = plan_symbol_lanes(all_units, sources, shared_tokens=0, target_tokens=args.target,
                                   max_lanes=args.max_lanes, chars_per_token=CPT,
                                   split_class_lines=args.split_class_lines)
-        cover_prompts = [shared + scaled(ln.prompt_tokens) for ln in cover.lanes]
+        cover_prompts = [shared + lane_cost(ln) for ln in cover.lanes]
 
         rows.append({
             "exercise_id": ex, "repo": t["repo"], "language": t["language"],
@@ -217,7 +265,8 @@ def main(argv: list[str] | None = None) -> int:
         return f"{n}/{len(rows)}"
 
     summary = {
-        "tasks": len(rows), "target_tokens": args.target, "max_lanes": args.max_lanes,
+        "tasks": len(rows), "counted": count is not None,
+        "count_model": args.count_model if count is not None else None, "target_tokens": args.target, "max_lanes": args.max_lanes,
         "board_tokens": args.board_tokens, "split_class_lines": args.split_class_lines,
         "calibration": summarize([r["calibration"] for r in rows], 3),
         "shared_tokens": summarize([r["shared_tokens"] for r in rows]),
@@ -245,7 +294,9 @@ def main(argv: list[str] | None = None) -> int:
         },
     }
     args.out.mkdir(parents=True, exist_ok=True)
-    (args.out / "fit.json").write_text(json.dumps({"summary": summary, "tasks": rows}, indent=1) + "\n")
+    name = "fit-counted.json" if count is not None and not args.fake_count else \
+        "fit-fakecount.json" if args.fake_count else "fit.json"
+    (args.out / name).write_text(json.dumps({"summary": summary, "tasks": rows}, indent=1) + "\n")
     print(json.dumps(summary, indent=1))
     return 0
 
