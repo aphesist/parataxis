@@ -132,3 +132,85 @@ the prefix-cache counter is recorded (unverified if vllm does not export it).
   - the local-tokenizer re-count in the fit study;
   - the ignored-correction detector used by the lb-kv trigger;
   - the 10-minute task cap.
+
+## part b: the freeze (proposed 2026-11-13, not yet in force)
+
+> **status:** proposed after the calibration ([`results/local-calib/`](results/local-calib/README.md)) and awaiting review. it is not in force, and the main run waits for it.
+>
+> the calibration failed two pre-registered checks on L1: format compliance and output caps. one configuration, La2, also exceeded the throughput-noise limit. so this part holds what was measured, the deviations so far, and the decision the protocol now requires (b.6).
+
+### b.1 serving configuration (as calibrated)
+
+- **image:** `vllm/vllm-openai:v0.33.0`, under day-1 fallback 2: `v0.27.2` does not exist. the pod requires host cuda ≥ 13.0.
+- **checkpoint:** `sakamakismile/Qwen3.8-27B-MTP-NVFP4`, served as `qwen3.8-27b`.
+- **decoding:** mtp `qwen3_5_mtp` with 3 speculative tokens; fp8 kv cache; prefix caching; `max_num_seqs` 16; `max_model_len` **98304** (deviation b.5.2).
+- **requests:** thinking off; temperature 0.7, top-p 0.8, top-k 20; at most 8K output tokens per lane request; 10 minutes per task.
+- **gpu:** runpod community cloud, one `NVIDIA GeForce RTX 5090` at $0.69/h. the harness and docker verifier run outside the pod and call vllm over https (verifier option b).
+- **measured at 98304:**
+  - smoke test passed;
+  - one 79,381-token prompt alone decoded at 44.7 tok/s;
+  - 8 lanes of 21,697 tokens at once ran at 242 tok/s aggregate with 0 preemptions;
+  - over the 2.3-hour calibration: 0 preemptions, peak kv-cache use 43%, mtp acceptance 0.89.
+
+### b.2 n
+
+- **by the choice rule:** n = 2. it has the most test-gated tok/s with no preemption (estimated 17.4 against 12.8 at n = 8 and 11.4 at n = 4), and no n solved more than 4 of 12.
+- **why the choice is provisional:**
+  - the cis overlap;
+  - the planner chose at most 2 lanes on 10 of 12 tasks, so n rarely binds;
+  - La2's aggregate-throughput iqr is 44% of its median, which triggers stop rule 5 (repeats are added).
+
+  n is re-chosen by the same rule after the repeat calibration in b.6.
+
+### b.3 code and prompt hashes
+
+[`results/local-calib/hashes.json`](results/local-calib/hashes.json):
+- **commit:** `dad9da4`. `src/` there is identical to `06b8141`, which ran the calibration.
+- **contraprova:** pinned at `403caf23e1f9321e0244f3805b00a177476df4e0`.
+- **files:** the sha256 of every tracked file in `src/` and `scripts/`.
+- **prompts:** the sha256 of every prompt constant in `parataxis.lanes` and contraprova's `swepro_arms`.
+
+these hashes describe the calibrated code. they are re-frozen after b.6, and a change to any listed prompt or file after that is a deviation.
+
+### b.4 contamination check
+
+- **task dates:** the base commits of all 49 tasks (37 main, 12 probe) date from 2019-08-01 to 2025-06-04 ([`task-dates.json`](results/local-calib/task-dates.json)).
+- **the model:** qwen3.8-27b's card states no training cutoff. its citation dates it to august 2026, and it reports swe-bench pro 61.7.
+- **conclusion:** contamination cannot be excluded, and the results will say so.
+  - it does not favour either side of the primary comparison: La and La-shadow merge the same lane outputs.
+  - it bears most on comparing local and api solve rates.
+
+### b.5 deviations from part a so far
+
+1. **image:** `v0.33.0` instead of `v0.27.2`, under fallback 2 (day 1).
+2. **`max_model_len`:** 98304 instead of 32768, approved before the calibration.
+   - **reason:** the prompts do not fit in 32768 with 8K of output. calibration's local inputs reached 41,149 tokens (L1) and 43,790 (a La lane).
+   - **re-check:** b.1, passed.
+   - **effect:** none on what lanes see. lane views, unit listings and prompts are built by the harness regardless of the limit, which only decides whether a request is refused.
+3. **the lane pre-flight's planner output estimate:** set to 1,199 tokens, the api study's measured median, instead of contraprova's default. the calibration planner cap was raised from $0.80 to $1.00, keeping the 1.2 margin, with approval.
+4. **L1's calibration pass ran in three logs:** a stream drop led to the fix `06b8141`, then a container restart. 2 + 5 + 5 tasks; tasks in flight were rerun from scratch.
+5. **metrics logging** started at 02:25 instead of at the first pass. the preemption counter is cumulative, so preemptions are covered in full.
+
+### b.6 required before the freeze: the failed checks
+
+- **format compliance (L1):** 11 of 22 gated L1 edits failed to parse or apply (50%; threshold 20%). part a says: change the edit format, else swap the model, and repeat the calibration.
+- **output caps (stop rule 4):** 8 of 35 L1 requests hit the 8K cap (23%; limit 10%), so the L1 configuration is invalid. La was within both limits: 0–7% at the cap, 5–11% failed edits.
+- **throughput noise (stop rule 5):** La2 needs repeats.
+- **proposed remedy** (the first step of the protocol's order):
+  1. **the edit format.** change the local arms' edit format to symbol-unit replacement, with SEARCH/REPLACE kept for text outside units:
+     - the response names a unit (`path::qualified.name`, from the unit listing the harness already builds) and gives its full new text;
+     - new units are placed after a named unit.
+
+     it is meant to remove the failures from echoing SEARCH text exactly, and to shorten responses for small edits inside large files; the repeat calibration measures whether it does. it applies to L1 and La alike, so that their comparison stays on one format. it is built and tested offline at $0.
+  2. **repeat the calibration** with the plans replayed: L1, La2 twice, La4, La8; $0 planner, about 2.5 pod hours, about $1.75 gpu inside the $10 cap.
+  3. **then:** re-choose n by the same rule, re-check format compliance, output caps and noise, and re-freeze the hashes.
+- **if the new format still fails compliance:** the protocol's next step is another model, which this part would name.
+
+### b.7 main-run planner cost and the proposed cap
+
+- **expected:** $2.389 for the 37 main plans ([`preflight-main.json`](results/local-calib/preflight-main.json)):
+  - input counted with `count_tokens` on the real symbol-lane planner prompts;
+  - output at 1,199 tokens per plan;
+  - $2.867 with the 1.2 margin.
+- **calibration's real spend** was 6% above its pre-flight, which puts the main run at about $2.53.
+- **proposed cap:** **$2.90** for the main run, so the pre-flight fits with its 1.2 margin ($2.867 ≤ $2.90). with calibration's $0.794 the track's planner total would be at most $3.69, against the $3.00 in part a's stop rule 2. the repeat calibration replays plans and adds nothing.
