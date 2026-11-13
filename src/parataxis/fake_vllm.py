@@ -27,13 +27,20 @@ class FakeVLLM:
     ``finish_reason: length``. ``requests`` records every chat request body."""
 
     def __init__(self, responder: Responder | None = None, *, key: str | None = None, model: str = "qwen3.8-27b",
-                 port: int = 0, chunk_chars: int = 64):
+                 port: int = 0, chunk_chars: int = 64, key_dir: str | None = None):
         self.responder = responder or (lambda model, messages, max_tokens: "I could not find a safe change.")
         self.key = key
+        self.key_dir = None if key_dir is None else __import__("pathlib").Path(key_dir)  # accept any *.key there
         self.model = model
         self.chunk_chars = chunk_chars
         self.requests: list[dict[str, Any]] = []
         self.unauthorized = 0
+        self.running = 0
+        self.counters = {"vllm:spec_decode_num_accepted_tokens_total": 0.0,
+                         "vllm:spec_decode_num_draft_tokens_total": 0.0,
+                         "vllm:num_preemptions_total": 0.0, "vllm:prefix_cache_hits_total": 0.0}
+        self._seen_prefixes: set[str] = set()
+        self._lock = threading.Lock()
         fake = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -41,7 +48,13 @@ class FakeVLLM:
                 pass
 
             def _auth(self) -> bool:
-                if fake.key and self.headers.get("authorization") != "Bearer " + fake.key:
+                got = self.headers.get("authorization") or ""
+                if fake.key_dir is not None:
+                    keys = {"Bearer " + p.read_text().strip() for p in fake.key_dir.glob("*.key")}
+                    ok = got in keys
+                else:
+                    ok = not fake.key or got == "Bearer " + fake.key
+                if not ok:
                     fake.unauthorized += 1
                     self._json(401, {"error": "unauthorized"})
                     return False
@@ -61,6 +74,16 @@ class FakeVLLM:
                     self.end_headers()
                     return
                 if not self._auth():
+                    return
+                if self.path == "/metrics":
+                    lines = [f'{k}{{model_name="{fake.model}"}} {v}' for k, v in fake.counters.items()]
+                    lines += [f'vllm:num_requests_running{{model_name="{fake.model}"}} {fake.running}',
+                              f'vllm:num_requests_waiting{{model_name="{fake.model}"}} 0']
+                    data = ("\n".join(lines) + "\n").encode()
+                    self.send_response(200)
+                    self.send_header("content-type", "text/plain")
+                    self.end_headers()
+                    self.wfile.write(data)
                     return
                 if self.path == "/v1/models":
                     self._json(200, {"data": [{"id": fake.model, "object": "model"}]})
@@ -84,7 +107,19 @@ class FakeVLLM:
                     return
                 fake.requests.append(body)
                 max_tokens = int(body.get("max_tokens") or 16)
-                text = fake.responder(body["model"], msgs, max_tokens)
+                with fake._lock:
+                    fake.running += 1
+                    head = prompt_text[:4000]
+                    if len(prompt_text) > 4000:
+                        if head in fake._seen_prefixes:
+                            fake.counters["vllm:prefix_cache_hits_total"] += len(head) // 4
+                        fake._seen_prefixes.add(head)
+                try:
+                    text = ("x" * (max_tokens * 4) if body.get("ignore_eos")
+                            else fake.responder(body["model"], msgs, max_tokens))
+                finally:
+                    with fake._lock:
+                        fake.running -= 1
                 finish = "stop"
                 if _tokens(text) > max_tokens:
                     text, finish = text[: max_tokens * 4], "length"
@@ -98,6 +133,9 @@ class FakeVLLM:
                     self.wfile.write(b"data: " + json.dumps(chunk).encode() + b"\n\n")
                 self.wfile.write(b"data: " + json.dumps({"id": rid, "choices": [
                     {"index": 0, "delta": {}, "finish_reason": finish}]}).encode() + b"\n\n")
+                with fake._lock:
+                    fake.counters["vllm:spec_decode_num_draft_tokens_total"] += _tokens(text)
+                    fake.counters["vllm:spec_decode_num_accepted_tokens_total"] += _tokens(text) * 0.6
                 usage = {"prompt_tokens": _tokens(prompt_text), "completion_tokens": _tokens(text),
                          "prompt_tokens_details": {"cached_tokens": 0}}
                 self.wfile.write(b"data: " + json.dumps({"id": rid, "choices": [], "usage": usage}).encode() + b"\n\n")
@@ -123,10 +161,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--port", type=int, default=8000)
     ap.add_argument("--key-env", default="PARATAXIS_VLLM_KEY", help="require this env var's value as the bearer key")
     ap.add_argument("--model", default="qwen3.8-27b")
-    ap.add_argument("--reply", default="I could not find a safe change.")
+    ap.add_argument("--key-dir", default=None, help="accept any key stored in <dir>/*.key (pod lifecycle dry runs)")
+    ap.add_argument("--reply", default="def add(a, b):\n    return a + b\n")
     args = ap.parse_args(argv)
     fake = FakeVLLM(lambda m, msgs, n: args.reply, key=os.environ.get(args.key_env) or None, model=args.model,
-                    port=args.port)
+                    port=args.port, key_dir=args.key_dir)
     print(f"fake vllm on {fake.url}", flush=True)
     fake.server.serve_forever()
     return 0

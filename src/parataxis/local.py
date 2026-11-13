@@ -58,12 +58,14 @@ class LocalError(Exception):
 class VLLMClient:
     """:class:`contraprova.interfaces.LLMClient` over an OpenAI-compatible vLLM server, via urllib."""
 
-    def __init__(self, base_url: str | None = None, *, key_env: str = KEY_ENV, served_model: str | None = None,
+    def __init__(self, base_url: str | None = None, *, key_env: str = KEY_ENV, key: str | None = None,
+                 served_model: str | None = None,
                  timeout: float = 900.0, max_retries: int = 4, backoff_base: float = 2.0,
                  sampling: Mapping[str, Any] | None = None, opener: Callable[..., Any] | None = None,
                  sleep: Callable[[float], None] = time.sleep):
         self.base_url = (base_url or os.environ.get(URL_ENV, "")).rstrip("/")
         self.key_env = key_env
+        self._key = key  # an explicit key wins over the environment; never shown by repr
         self.served_model = served_model or os.environ.get(SERVED_ENV)
         self.timeout = timeout
         self.max_retries = max_retries
@@ -97,7 +99,7 @@ class VLLMClient:
     def _request(self, path: str, body: Mapping[str, Any]):
         if not self.base_url:
             raise LocalError(f"no endpoint: set {URL_ENV}")
-        key = os.environ.get(self.key_env, "")
+        key = self._key or os.environ.get(self.key_env, "")
         headers = {"content-type": "application/json", "accept": "application/json, text/event-stream"}
         if key:
             headers["authorization"] = "Bearer " + key
