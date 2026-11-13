@@ -212,6 +212,20 @@ these hashes describe the calibrated code. they are re-frozen after b.6, and a c
 10. **L1 output cap:** 16K tokens (approved). L1 is not a lane, and 8K cannot hold the gold patch of 9 of the 37 main tasks.
 11. **the lane pre-flight's planner output estimate:** 1,500 tokens per plan under the change list. this is an estimate: about 700 for the interfaces, rationale and JSON, plus about 65 per change, at a median of about 12 changes per probe task (the dry planner's count). it was 1,199 for the first calibration's schema. the budget guard caps the real spend whatever the estimate says.
 12. **plans bought without a pod:** `--plans-only` buys each probe task's plan and stops. the calibration passes replay them, and the lane pre-flight prices a replayed plan at $0.
+    - **plans bought:** 10 of the 12 probe plans, for $0.7928. the budget guard refused the last 2 (ansible `d72025be`, openlibrary `25858f9f`): the next request's worst case was above the $0.213 left of the $1.80 calibration cap.
+    - **calibration set:** the repeat calibration runs on the 10 tasks with plans; the 2 are not bought (approved).
+    - **replay:** replaying passes run with `PARATAXIS_REPLAY_ONLY=1`, so every request that is not a replayed plan is refused before it reaches the claude api, and their planner spend is exactly $0.
+13. **after the first repeat-calibration L1 pass (calibration-stage change, approved).** L1 still failed format compliance: 9 of 19 gated edits failed (47%). two causes were new:
+    - **tool calls:** 5 replies were agent-style tool calls (`<tool_call>` … `Bash`) instead of edits;
+    - **UNIT misuse:** UNIT blocks named functions that did not exist yet.
+
+    so, for L1, La and Lb alike:
+    - the system prompt states that there are no tools and that the reply is edit blocks only;
+    - local requests stop at `<tool_call>`, and a reply that is only a tool call is its own failure kind (`tool_call`), sent to the edit-repair turn with that message;
+    - a UNIT block naming a missing function or method adds it, at the end of its class or of the file;
+    - a bare javascript name also matches an assignment to `obj.name`.
+
+    tool-call replies are logged per submission (`tool_call`, `repair_tool_call`), so the write-up can separate agent-trained behaviour from other format failures.
 
 ### b.6 required before the freeze: the failed checks
 

@@ -163,7 +163,8 @@ def test_js_unit_inside_a_wrapper_function():
 
 @pytest.mark.parametrize("reply, says", [
     ("<<<<<<< UNIT m.py::alpha\ndef alpha(x):\n", "block truncated"),
-    ("<<<<<<< UNIT m.py::nope\nx\n>>>>>>> END\n", "units in this file: alpha, Box, beta"),
+    ("<<<<<<< AFTER m.py::nope\nx\n>>>>>>> END\n", "units in this file: alpha, Box, beta"),
+    ("<<<<<<< UNIT m.py::Nope.x\nx\n>>>>>>> END\n", "no function, method or class named 'Nope'"),
     ("<<<<<<< UNIT other.py::alpha\nx\n>>>>>>> END\n", "not one of the files shown"),
     ("<<<<<<< UNIT alpha\nx\n>>>>>>> END\n", "must be path::name"),
     ("<<<<<<< UNIT m.py::alpha\nx\n>>>>>>> END\n<<<<<<< UNIT m.py::alpha\ny\n>>>>>>> END\n", "already replaced"),
@@ -267,3 +268,66 @@ def test_l1_and_la_run_end_to_end_in_unit_blocks(tmp_path, exercises, units_inst
     assert got[("La", ex.id)] and got[("L1", ex.id)]
     systems = {c["system"] for c in offline.calls if c["role"] != "orchestrator"}
     assert all(ue.UNIT_EDIT_FORMAT in s for s in systems if s)
+
+
+# ------------------------------------------------------------------ P1: missing units are added; tool calls are repaired
+
+
+def test_a_unit_block_for_a_missing_function_or_method_adds_it():
+    new, errors, x = apply_reply("<<<<<<< UNIT m.py::gamma\ndef gamma():\n    return 3\n>>>>>>> END\n", {"m.py": PY})
+    assert errors == [] and x.added == ("m.py::gamma",)
+    assert new["m.py"] == PY + "\n\ndef gamma():\n    return 3\n"
+    meth = "<<<<<<< UNIT m.py::Box.close\n    def close(self):\n        return 'shut'\n>>>>>>> END\n"
+    new, errors, x = apply_reply(meth, {"m.py": PY})
+    assert errors == [] and x.added == ("m.py::Box.close",)
+    assert "            return 1\n\n    def close(self):\n        return 'shut'\n\n\nif os.name" in new["m.py"]
+    js = "<<<<<<< UNIT h.js::Store.put\n    put(key) {\n        this.x = key;\n    }\n>>>>>>> END\n"
+    new, errors, _ = apply_reply(js, {"h.js": JS})
+    assert errors == [] and "        return this.x;\n    }\n\n    put(key) {\n        this.x = key;\n    }\n}\n" in new["h.js"]
+
+
+def test_a_bare_js_name_matches_an_assignment_to_obj_name():
+    got = locate("h.js", JS, "incrObjectFieldBy")
+    assert not isinstance(got, str) and "Hash.incrObjectFieldBy = async" in span_text(JS, got)
+
+
+def test_local_requests_stop_at_a_tool_call():
+    from parataxis.local import VLLMClient
+    from contraprova.interfaces import Message
+
+    body = VLLMClient("http://x").build_body(model="local:qwen3.8-27b", system="s", messages=[Message("user", "u")],
+                                            max_tokens=10)
+    assert body["stop"] == ["<tool_call>"] and body["include_stop_str_in_output"] is True
+    assert ue.NO_TOOLS in ue.UNIT_EDIT_FORMAT
+
+
+def test_a_tool_call_reply_goes_to_the_repair_turn_and_is_logged(tmp_path, exercises, units_installed, monkeypatch):
+    from contraprova.projections import outcomes
+
+    from parataxis.arms import L1_ARM, install as install_arms
+    from parataxis.fake_vllm import FakeVLLM
+    from parataxis.local import KEY_ENV, LocalRoleClients, VLLMClient
+
+    from test_lanes import IDS, events_of, harness  # noqa: F811
+
+    monkeypatch.setenv(KEY_ENV, "test-key-not-a-secret")
+    install_arms()
+    offline = ue.unit_fake_client(ProFakeClient)(exercises, lanes_k=3)
+    seen = {"n": 0}
+
+    def responder(model, msgs, max_tokens):
+        seen["n"] += 1
+        if seen["n"] == 1:
+            return "Let me look first.\n\n<tool_call>"
+        assert ue.REPAIR_TOOL_CALL in msgs[-1]["content"]
+        task = next(m["content"] for m in msgs if m["role"] == "user")  # the first user turn holds the task
+        return offline._worker_text(offline._task_of(task), model, task)
+
+    with FakeVLLM(responder, key="test-key-not-a-secret") as fake:
+        client = LocalRoleClients(local=VLLMClient(fake.url, sleep=lambda s: None), cloud=offline)
+        h, _, _ = harness(tmp_path, exercises, client=client)
+        ex = exercises[IDS[0]]
+        assert h.run_task(L1_ARM, ex, ex.test_split, "lanes-probe")
+    sub = [s for s in events_of(h, "task.submitted") if "original_failure" in s][0]
+    assert sub["original_failure"] == "tool_call" and sub["tool_call"] is True and sub["repair_used"]
+    assert sub["final_failure"] is None and outcomes(h.log.events())[(L1_ARM, ex.id)]

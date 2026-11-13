@@ -63,7 +63,12 @@ _UNIT_OPEN = re.compile(r"^<<<<<<< (?P<kind>UNIT|AFTER)(?:[ \t]+(?P<ref>\S.*?))?
 _UNIT_END = re.compile(r"^>>>>>>> END[ \t]*$")
 _JS_COMMENT = ("/**", "/*", "*", "//")
 
-UNIT_EDIT_FORMAT = f"""Return your changes as edit blocks. There are three kinds.
+NO_TOOLS = ("You have no tools: you cannot run commands, open or search files, or call functions, and nothing you "
+            "write is executed. Everything you can use is in this message. Reply only with edit blocks.")
+
+UNIT_EDIT_FORMAT = f"""{NO_TOOLS}
+
+Return your changes as edit blocks. There are three kinds.
 
 1. To change a short function, method or class (up to about {UNIT_MAX_LINES} lines), or to rewrite most of one, replace \
 it whole:
@@ -75,7 +80,8 @@ the complete new text of that function, method or class
 Name the unit path::function, path::Class or path::Class.method (in JavaScript or TypeScript also an assigned \
 name, such as path::Hash.incrObjectFieldBy). The unit runs from its first decorator to its last line; comments \
 above it are not part of it. Give its complete new text, decorators and docstring included, with the file's \
-indentation. An empty body deletes the unit.
+indentation. An empty body deletes the unit. A UNIT block naming a function or method that does not exist yet adds \
+it: a new method at the end of its class, anything else at the end of the file.
 
 2. To add new functions, methods or classes, put them directly after an existing one:
 
@@ -99,6 +105,16 @@ Blocks refer to the files as shown to you and apply in order. Name each unit in 
 the blocks directly: do not think aloud or draft code before them, and keep any text outside the blocks to a few \
 lines. Never edit test files."""
 
+TOOL_MARKERS = ("<tool_call>", "<function=")
+REPAIR_TOOL_CALL = ("You have no tools: your tool call was not executed, and nothing can be run, opened or searched. "
+                    "Everything you can use is in the first message. Reply with only the edit blocks for your change.")
+
+
+def is_tool_call(text: str) -> bool:
+    """Whether a reply contains an agent-style tool call (which is never executed here)."""
+    return any(m in (text or "") for m in TOOL_MARKERS)
+
+
 # The texts that ask for "SEARCH/REPLACE blocks" by name, as they read with this format.
 REPAIR_TRUNCATED = ("Your answer was cut off at the output limit. Reply with only the remaining edit blocks; "
                     "do not repeat blocks you already sent in full.")
@@ -113,6 +129,7 @@ class Expanded:
     errors: tuple[str, ...] = ()
     unit_blocks: int = 0  # UNIT/AFTER blocks found (well formed or not)
     refs: tuple[str, ...] = field(default=())  # the refs that resolved
+    added: tuple[str, ...] = field(default=())  # UNIT refs naming a missing function or method, added
 
 
 # ------------------------------------------------------------------ locating a unit
@@ -192,7 +209,8 @@ def _locate_js(path: str, source: str, name: str) -> tuple[int, int] | str:
             if got is not None:
                 return got
     # an assigned name anywhere in the file: ``Hash.incrObjectFieldBy = async function (...) {``
-    pat = re.compile(rf"^\s*(?:(?:export\s+)?(?:const|let|var)\s+)?{re.escape(name)}\s*(?::[^=]+)?=(?!=)")
+    prefix = r"(?:[A-Za-z_$][\w$]*\.)*" if "." not in name else ""  # a bare name also matches obj.name = ...
+    pat = re.compile(rf"^\s*(?:(?:export\s+)?(?:const|let|var)\s+)?{prefix}{re.escape(name)}\s*(?::[^=]+)?=(?!=)")
     hits = [j for j, b in enumerate(blank) if pat.match(b)]
     if len(hits) == 1:
         j = hits[0]
@@ -262,6 +280,7 @@ def expand_unit_blocks(text: str, files: Mapping[str, str]) -> Expanded:
 
     groups: dict[tuple[str, int, int], list[_Block]] = {}
     order: list[tuple[str, int, int]] = []
+    adds: dict[tuple[str, int, str], list[_Block]] = {}  # (path, anchor line, "after" | "before") -> new units
     for b in blocks:
         path, sep, name = b.ref.partition("::")
         clean = clean_path(path) if sep else None
@@ -272,6 +291,11 @@ def expand_unit_blocks(text: str, files: Mapping[str, str]) -> Expanded:
             errors.append(f"{b.kind} {b.ref}: {clean} is not one of the files shown; dropped")
             continue
         got = locate(clean, files[clean], name.strip())
+        if isinstance(got, str) and b.kind == "UNIT" and got.startswith("no function"):
+            point = add_point(clean, files[clean], name.strip())
+            if point is not None:  # a UNIT for a function or method that does not exist yet adds it
+                adds.setdefault((clean, *point), []).append(b)
+                continue
         if isinstance(got, str):
             known = ", ".join(u.name for u in units(clean, files[clean])[:30])
             errors.append(f"{b.kind} {b.ref}: {got}" + (f" (units in this file: {known})" if known else "") + "; dropped")
@@ -314,7 +338,43 @@ def expand_unit_blocks(text: str, files: Mapping[str, str]) -> Expanded:
             continue
         out[group[0].at] = f"{SEARCH_MARK} {path}\n{search}{DIVIDER}\n{replace_}{REPLACE_MARK}"
         refs += [b.ref for b in group]
-    return Expanded("\n".join(out), tuple(errors), found, tuple(refs))
+    added = []
+    for (path, line, where), group in adds.items():
+        src = files[path]
+        src_lines = src.split("\n")
+        anchor = src_lines[line - 1] + "\n"
+        top_level = "." not in group[0].ref.partition("::")[2]
+        gap = "\n\n" if (top_level and path.endswith(PY_EXT)) else "\n"
+        body = "".join(gap + b.body if not b.body.startswith("\n") else b.body for b in group)
+        # after: the anchor line, a gap, the new code; before (a JS class's closing line): a gap, the code, the line
+        search, replace_ = (anchor, anchor + body) if where == "after" else (anchor, body + anchor)
+        top = line - 1
+        while _occurrences(src, search) > 1 and top > 0:
+            top -= 1
+            search = src_lines[top] + "\n" + search
+            replace_ = src_lines[top] + "\n" + replace_
+        if _occurrences(src, search) != 1:
+            errors.append(f"UNIT {group[0].ref}: no unique place to add it in {path}; use a SEARCH/REPLACE block; dropped")
+            continue
+        out[group[0].at] = f"{SEARCH_MARK} {path}\n{search}{DIVIDER}\n{replace_}{REPLACE_MARK}"
+        refs += [b.ref for b in group]
+        added += [b.ref for b in group]
+    return Expanded("\n".join(out), tuple(errors), found, tuple(refs), tuple(added))
+
+
+def add_point(path: str, source: str, name: str) -> tuple[int, str] | None:
+    """Where a UNIT block for a missing ``name`` adds it: (line, "after") below the end of its class
+    (Python) or the end of the file, or (line, "before") the closing line of its class (JavaScript and
+    TypeScript). None when the name's class does not exist either."""
+    parent, _, _ = name.rpartition(".")
+    if parent:
+        got = locate(path, source, parent)
+        if isinstance(got, str):
+            return None
+        return (got[1], "after") if path.endswith(PY_EXT) else (got[1], "before")
+    lines = source.split("\n")
+    last = max((i for i, x in enumerate(lines, 1) if x.strip()), default=0)
+    return (last, "after") if last else None
 
 
 def _occurrences(src: str, search: str) -> int:
@@ -362,18 +422,25 @@ def _work_units(self, arm, task_id, ex, model, prompt, attempt, effort=None, rol
         p = sa.parse_edits(x.text)
         return ParsedEdits(p.blocks, x.errors + p.errors), x
 
+    def failure_of(text: str, stop, p, a):
+        # a reply that only calls a tool (never executed here) is its own failure kind, sent to the repair turn
+        if is_tool_call(text) and not p.blocks:
+            return "tool_call"
+        return sa.edit_failure(stop, p.errors, a.errors)
+
     parsed, x1 = parse(c.text)
     applied = sa.apply_edits(parsed.blocks, ex.context.files, scope=scope)
-    failure = sa.edit_failure(c.stop_reason, parsed.errors, applied.errors)
+    failure = failure_of(c.text, c.stop_reason, parsed, applied)
     first_errors = list(parsed.errors + applied.errors)
     info = {"repair_used": False, "original_failure": failure, "original_errors": first_errors,
             "stop_reason": c.stop_reason, "edit_format": "units", "unit_blocks": x1.unit_blocks,
-            "unit_errors": list(x1.errors)}
+            "unit_errors": list(x1.errors), "unit_added": list(x1.added), "tool_call": is_tool_call(c.text)}
     blocks, final, last_parse, last_stop = list(parsed.blocks), applied, parsed.errors, c.stop_reason
     sent = list(parsed.blocks)
     if failure and self.repair:
         history = (sa.Message("user", prompt, cache_upto), sa.Message("assistant", c.text.rstrip() or "(no output)"))
-        c2 = self.call(user=sa.repair_message(failure, first_errors), history=history,
+        c2 = self.call(user=REPAIR_TOOL_CALL if failure == "tool_call" else sa.repair_message(failure, first_errors),
+                       history=history,
                        extra_tags={**dict(extra_tags or {}), "repair": True}, **kw)
         parsed2, x2 = parse(c2.text)
         offset = max((b.index for b in parsed.blocks), default=0)
@@ -384,11 +451,16 @@ def _work_units(self, arm, task_id, ex, model, prompt, attempt, effort=None, rol
         last_parse, last_stop = parsed2.errors, c2.stop_reason
         info.update(repair_used=True, repair_stop_reason=c2.stop_reason, repair_response=c2.text,
                     repair_blocks=len(parsed2.blocks), repair_unit_blocks=x2.unit_blocks,
-                    repair_unit_errors=list(x2.errors))
+                    repair_unit_errors=list(x2.errors), repair_unit_added=list(x2.added),
+                    repair_tool_call=is_tool_call(c2.text))
+        last_text = c2.text
+    else:
+        last_text = c.text
     errors = list(last_parse + final.errors)
     if last_stop == "max_tokens":
         errors.append(f"reply cut off at max_tokens ({mt}); the unfinished block was dropped")
-    info["final_failure"] = sa.edit_failure(last_stop, last_parse, final.errors)
+    info["final_failure"] = ("tool_call" if is_tool_call(last_text) and not blocks
+                             else sa.edit_failure(last_stop, last_parse, final.errors))
     if lane_scope:
         info["rejected_blocks"] = [{"block": b.index, "path": b.path, "reason": scope(b.path)}
                                    for b in sent if scope(b.path)]

@@ -41,6 +41,11 @@ API_BUDGET_ENV = "PARATAXIS_API_BUDGET_USD"
 # Qwen's recommended non-thinking sampling; pre-registered.
 SAMPLING: dict[str, Any] = {"temperature": 0.7, "top_p": 0.8, "top_k": 20}
 RETRYABLE = frozenset({408, 409, 425, 429, 500, 502, 503, 504, 520, 522, 524})
+# The model was trained for an agent harness and sometimes answers with a tool call instead of edits
+# (the repeat calibration: 5 of 19 L1 replies). A tool call can never be executed here, so generation
+# stops at its opening tag; the tag is kept in the text so the harness can see it and send the reply
+# to the edit-repair turn (parataxis.unit_edits). Not part of the pre-registered sampling.
+TOOL_CALL_STOP = ("<tool_call>",)
 
 
 def register_local_price(model: str = LOCAL_MODEL) -> None:
@@ -93,7 +98,8 @@ class VLLMClient:
     def build_body(self, *, model: str, system: str, messages: Sequence[Message], max_tokens: int) -> dict[str, Any]:
         return {"model": self.served(model), "messages": self.chat_messages(system, messages),
                 "max_tokens": int(max_tokens), "stream": True, "stream_options": {"include_usage": True},
-                "chat_template_kwargs": {"enable_thinking": False}, **self.sampling}
+                "chat_template_kwargs": {"enable_thinking": False}, **self.sampling,
+                "stop": list(TOOL_CALL_STOP), "include_stop_str_in_output": True}
 
     # -- transport
 
