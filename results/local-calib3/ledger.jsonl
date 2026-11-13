@@ -1,0 +1,6 @@
+{"cloud": "COMMUNITY", "cost_per_hr": 0.69, "event": "created", "image": "vllm/vllm-openai:v0.33.0", "max_hours": 3.5, "name": "parataxis-calib-20261113T063906", "pod": "0s48fh8l90sbwl", "t": 1794551947.8}
+{"event": "ready", "pod": "0s48fh8l90sbwl", "ready_s": 343.1, "running_s": 0.6, "t": 1794552290.998}
+{"event": "terminated", "pod": "0s48fh8l90sbwl", "reason": "reap", "t": 1794553732.927}
+{"cloud": "COMMUNITY", "cost_per_hr": 0.69, "event": "created", "image": "vllm/vllm-openai:v0.33.0", "max_hours": 3.5, "name": "parataxis-calib-20261113T072116", "pod": "cukpo2ul52vj8e", "t": 1794554478.36}
+{"event": "ready", "pod": "cukpo2ul52vj8e", "ready_s": 721.5, "running_s": 0.6, "t": 1794555199.885}
+{"event": "terminated", "pod": "cukpo2ul52vj8e", "reason": "done", "t": 1794561678.684}
