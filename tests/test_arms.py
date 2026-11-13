@@ -49,3 +49,35 @@ def test_l1_unsolved_after_the_retry_is_not_shipped(tmp_path, exercises):
     assert not h.run_task(L1_ARM, ex, ex.test_split, "lanes-probe")
     o = _outcome(h)
     assert not o["shipped"] and not o["solved"] and o["attempts"] == 2
+
+
+MARK = "----- everything above is shared by all lanes"
+
+
+def test_lb_text_shares_one_prefix_and_feeds_the_board_to_the_next_round(tmp_path, exercises):
+    from parataxis.arms import LB_ARM
+    from parataxis.lanes import LOCAL_LADDER, LaneConfig
+
+    install()
+    first_l1 = {"n": 0}
+
+    def policy(tid, model, lane):
+        if lane and lane[0] == "L1":
+            first_l1["n"] += 1
+            return "none" if first_l1["n"] == 1 else "gold"
+        return "gold"
+
+    client = ProFakeClient(exercises, policy=policy)
+    h, _, _ = harness(tmp_path, exercises, client=client, cfg=LaneConfig(ladder=LOCAL_LADDER, max_lanes=8))
+    ex = exercises[IDS[0]]
+    assert h.run_task(LB_ARM, ex, ex.test_split, "lanes-probe")
+    h.log.verify()
+    lanes = [c for c in client.calls if c["role"] == "worker"]
+    round0 = lanes[:3]
+    prefixes = {c["prompt"].split(MARK)[0] for c in round0}
+    assert len(prefixes) == 1 and "(empty: this is the first round)" in prefixes.pop()
+    later = [c for c in lanes[3:] if MARK in c["prompt"]]
+    assert later and "### L2, round 0" in later[0]["prompt"].split(MARK)[0]  # peers' round-0 changes on the board
+    arms = {o["arm"] for o in events_of(h, "outcome.scored")}
+    assert {"Lb", "Lb-shadow", "Lb-first"} <= arms and "La" not in arms
+    assert all(t.startswith("Lb:") for t in {e.payload["task_id"] for e in h.log.events() if e.type == "task.created"})

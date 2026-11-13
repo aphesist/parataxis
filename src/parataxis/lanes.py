@@ -96,6 +96,7 @@ SHADOW_ARM = "La-shadow"
 FIRST_ARM = "La-first"
 SONNET_ARM = "La-sonnet"
 DERIVED_ARMS: tuple[str, ...] = (SHADOW_ARM, FIRST_ARM, SONNET_ARM)
+BOARD_ARM = "Lb"  # Lb-text: La with a shared blackboard (run_la(..., board=True))
 LANE_MODELS = frozenset({HAIKU, SONNET, OPUS})
 T0_INTERFACES = "T0.interfaces"
 MAX_LANES = 4  # the API study's cap and LaneConfig's default
@@ -633,6 +634,115 @@ def lane_prompt(ex: ProExercise, ts: ProTestSplit, plan: LanePlan, lane: Lane,
         new_files=_bullets(lane.new_files), outline=outline, tests=note + _bullets(tests))
 
 
+BOARD_SHARED = """Repository: {repo} ({language})
+Task: {instance_id}
+
+## Problem statement
+{statement}
+
+## Requirements
+{requirements}
+
+## Interface (from the task)
+{interface}
+
+## The lane plan ({k} lanes work on this task in parallel)
+{plan}
+
+## Frozen interfaces (shared by all lanes; never change them)
+{frozen}
+
+## Outline of every file of the task
+{outline}
+
+## Blackboard (shared by all lanes, append-only; each lane's changes and notes after each round)
+{board}
+
+----- everything above is shared by all lanes; your lane's part follows -----
+"""
+
+BOARD_LANE = """Lane: {lane_id} of {k} (files: {lane_files})
+
+## Your lane's goal
+{goal}
+
+## Interfaces your lane provides to other lanes
+{provides}
+
+## Interfaces your lane uses from other lanes (implemented by them; call them as written)
+{uses}
+
+## Your files (full current content)
+{files}
+
+## New files your lane may create
+{new_files}
+
+## Tests your lane should help make pass (names only; their code is not shown)
+{tests}
+
+## Notes for the other lanes
+Outside your SEARCH/REPLACE blocks, write at most a few lines the other lanes should know (what you changed, \
+what you rely on). They are added to the blackboard.
+
+## Interface changes
+The interfaces above are frozen. If your lane cannot work without a change, still implement against the frozen \
+interface and add one line per symbol: INTERFACE REQUEST: <symbol>: <signature you need>
+"""
+
+BOARD_MAX_CHARS = 16_000
+BOARD_NOTE_DIFF_CHARS = 2_000
+BOARD_NOTE_TEXT_CHARS = 600
+
+
+def board_lane_prompt(ex: ProExercise, ts: ProTestSplit, plan: LanePlan, lane: Lane, board: str,
+                      outline_max_chars: int = LANE_OUTLINE_MAX_CHARS) -> str:
+    """Lb-text's lane prompt: a prefix identical for every lane of the task (so the server's prefix
+    cache serves it once), then the lane's own part."""
+    t = ex.task
+    plan_lines = []
+    for ln in plan.lanes:
+        own = ", ".join([*(p for p in ln.allowed if p not in ln.unit_paths), *ln.units, *ln.new_files]) or "(none)"
+        plan_lines.append(f"- {ln.lane_id}: {ln.goal or '(no goal given)'} [owns: {own}]")
+    frozen = [f"{i.signature or i.symbol}" + (f"  [file {i.path}]" if i.path else "")
+              + (f"  [owner {i.owner}]" if i.owner else "") for i in plan.interfaces]
+    outline = render_outline(dict(ex.context.files), new_files=tuple(ex.context.new_files),
+                             max_chars=outline_max_chars) if ex.context.files or ex.context.new_files else "(none)"
+    shared = BOARD_SHARED.format(
+        repo=t.repo, language=t.language, instance_id=t.instance_id, statement=t.problem_statement.strip(),
+        requirements=t.requirements.strip() or "(none)", interface=t.interface.strip() or "(none)", k=plan.k,
+        plan="\n".join(plan_lines), frozen=_bullets(frozen), outline=outline,
+        board=board.strip() or "(empty: this is the first round)")
+    tests = lane.tests or ts.visible
+    note = "" if lane.tests else "(the plan assigned none; these are the whole task's visible tests)\n"
+    return shared + BOARD_LANE.format(
+        lane_id=lane.lane_id, k=plan.k, lane_files=", ".join(lane.files), goal=lane.goal or "(see the problem statement)",
+        provides=_bullets(lane.exports), uses=_bullets(lane.imports),
+        files=format_files(lane_files_view(ex, lane)) or "(none: this lane only creates files)",
+        new_files=_bullets(lane.new_files), tests=note + _bullets(tests))
+
+
+def board_note(ex: ProExercise, lane_id: str, tier: str, rnd: int, files: Mapping[str, str], response: str) -> str:
+    """One blackboard entry: the lane's change as a capped diff, then its notes (the reply outside
+    its SEARCH/REPLACE blocks)."""
+    diff = unified_patch({p: ex.context.files.get(p, "") for p in files if p in ex.context.files}, dict(files))
+    if len(diff) > BOARD_NOTE_DIFF_CHARS:
+        diff = diff[:BOARD_NOTE_DIFF_CHARS] + "\n[diff truncated]"
+    text = re.sub(r"(?ms)^\S[^\n]*\n<{7} SEARCH\n.*?\n>{7} REPLACE\n?", "", response or "")
+    text = re.sub(r"```[a-z]*\n?|```", "", text).strip()[:BOARD_NOTE_TEXT_CHARS]
+    return (f"### {lane_id}, round {rnd} ({tier})\n" + (f"```diff\n{diff.strip()}\n```\n" if diff.strip() else
+            "(no change)\n") + (f"notes: {text}\n" if text else ""))
+
+
+def board_text(entries: Sequence[str], max_chars: int = BOARD_MAX_CHARS) -> str:
+    """The blackboard: every entry in order; when too long, the oldest entries are dropped first."""
+    out = list(entries)
+    while out and sum(len(e) + 1 for e in out) > max_chars:
+        out.pop(0)
+    dropped = len(entries) - len(out)
+    return (f"[{dropped} older entries dropped]\n" if dropped else "") + "\n".join(out)
+
+
 UNITS_NOTE = ("[units] in this file you own only {names}: they are shown in full, the rest of the file only "
               "as an outline. Change only your units; you may add new helpers directly below them.\n")
 
@@ -1003,7 +1113,8 @@ def _planner_context(h, ex: ProExercise, ts: ProTestSplit, max_lanes: int, symbo
     return h.lead_context(ex, ts) + request
 
 
-def plan_lanes(h, ex: ProExercise, ts: ProTestSplit, tid: str, cfg: LaneConfig) -> tuple[LanePlan, dict[str, Any]]:
+def plan_lanes(h, ex: ProExercise, ts: ProTestSplit, tid: str, cfg: LaneConfig,
+               arm: str = LANE_ARM) -> tuple[LanePlan, dict[str, Any]]:
     """The planner request (and at most one plan-repair turn). Returns the plan (the single-lane
     fallback when the reply stays invalid) and the ``lane.planned`` extras."""
     user = _planner_context(h, ex, ts, cfg.max_lanes, cfg.symbol_lanes)
@@ -1011,7 +1122,7 @@ def plan_lanes(h, ex: ProExercise, ts: ProTestSplit, tid: str, cfg: LaneConfig) 
     def lane_tokens(plan: LanePlan, lane: Lane) -> int:
         return estimate_tokens(LANE_SYSTEM + lane_prompt(ex, ts, plan, lane, cfg.outline_max_chars))
 
-    kw = dict(arm=LANE_ARM, role="orchestrator", task_id=tid, model=cfg.planner_model, system=h.lead_system,
+    kw = dict(arm=arm, role="orchestrator", task_id=tid, model=cfg.planner_model, system=h.lead_system,
               max_tokens=cfg.planner_max_tokens, effort=cfg.planner_effort)
     c = h.call(user=user, extra_tags={"lane_role": "planner"}, **kw)
     got = parse_plan(c.text, ex, ts, max_lanes=cfg.max_lanes, lane_tokens=lane_tokens,
@@ -1057,19 +1168,27 @@ def _merged_payload(h, ex: ProExercise, tid: str, attempt: int, rnd: int, files:
             "merge": mode, "round": rnd, "lanes": dict(lanes)}
 
 
-def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfig | None = None) -> bool:
-    """Arm La on one task (see the module docstring). Returns whether La solved it."""
+def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfig | None = None, *,
+           board: bool = False, arm: str | None = None) -> bool:
+    """Arm La on one task (see the module docstring). Returns whether La solved it.
+
+    ``board=True`` runs Lb-text (arm ``Lb`` by default): every lane prompt starts with one shared
+    prefix (the task, the whole plan, the outline and the blackboard) and ends with the lane's own
+    part, and after each round every lane's changes and notes are appended to the blackboard, which
+    the lanes that run again read. Derived arms are named after the arm (``Lb-shadow``, ...)."""
     from contraprova.harness.swepro_arms import ProGates, ProSubmission
 
     cfg = cfg or getattr(h, "lane_config", None) or LaneConfig()
-    tid = f"{LANE_ARM}:{ex.id}"
+    arm = arm or (BOARD_ARM if board else LANE_ARM)
+    tid = f"{arm}:{ex.id}"
+    blackboard: list[str] = []
     contract = h.contract(tid, ex)
     cdict = {"allowed": list(contract.allowed), "protected": list(contract.protected)}
     max_rounds = min(cfg.max_rounds, len(cfg.ladder) - 1)
-    h.create(LANE_ARM, tid, ex, split, max_attempts=1 + max_rounds, contract=cdict, lane_config=cfg.to_dict())
+    h.create(arm, tid, ex, split, max_attempts=1 + max_rounds, contract=cdict, lane_config=cfg.to_dict())
 
     # 1. plan
-    plan, pinfo = plan_lanes(h, ex, ts, tid, cfg)
+    plan, pinfo = plan_lanes(h, ex, ts, tid, cfg, arm)
     plan_sha = plan.sha256
     plan_id = f"plan-{sha256_text(tid + ':' + plan_sha)[:12]}"
     planned = {"task_id": tid, "plan_id": plan_id, "model": cfg.planner_model, "k": plan.k,
@@ -1106,7 +1225,7 @@ def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfi
     for ln in plan.lanes:
         ltid = f"{tid}:{ln.lane_id}"
         lc = lane_contract(ltid, ln)
-        h.create(LANE_ARM, ltid, ex, split, max_attempts=len(cfg.ladder), kind="lane", scope=list(ln.files),
+        h.create(arm, ltid, ex, split, max_attempts=len(cfg.ladder), kind="lane", scope=list(ln.files),
                  parent=tid, plan_id=plan_id, lane_id=ln.lane_id,
                  contract={"allowed": list(lc.allowed), "protected": list(lc.protected), "symbols": list(lc.symbols)})
         states[ln.lane_id] = _LaneState(ln, ltid, lane_prompt(ex, ts, plan, ln, cfg.outline_max_chars))
@@ -1114,14 +1233,16 @@ def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfi
     def next_request(st: _LaneState) -> tuple[str, str, str | None, str]:
         """(step, model, effort, prompt) of the lane's next request; run_lane and the prefetch use it."""
         step, model, effort = cfg.ladder[st.step + 1]
-        prompt = st.base_prompt if st.sub is None else lane_retry_prompt(
-            st.base_prompt, ex, st.lane, st.sub.files, st.last_feedback, h.config.feedback_chars)
+        base = st.base_prompt if not board else board_lane_prompt(ex, ts, plan, st.lane, board_text(blackboard),
+                                                                   cfg.outline_max_chars)
+        prompt = base if st.sub is None else lane_retry_prompt(
+            base, ex, st.lane, st.sub.files, st.last_feedback, h.config.feedback_chars)
         return step, model, effort, prompt
 
     def run_lane(st: _LaneState, rnd: int) -> None:
         step, model, effort, prompt = next_request(st)
         st.step += 1
-        sub = h._work(LANE_ARM, st.task_id, ex, model, prompt, st.step + 1, effort, scope=lane_scope(st.lane),
+        sub = h._work(arm, st.task_id, ex, model, prompt, st.step + 1, effort, scope=lane_scope(st.lane),
                       max_tokens=cfg.lane_max_tokens, system=LANE_SYSTEM,
                       extra={"plan_id": plan_id, "lane_id": st.lane.lane_id, "tier": step, "round": rnd},
                       extra_tags={"lane_id": st.lane.lane_id, "tier": step})
@@ -1150,7 +1271,7 @@ def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfi
         h.emit("task.submitted", "kernel:merge", _merged_payload(h, ex, tid, attempt, rnd, merged.files, merged.errors,
                                                                  lanes_seq, "governed"))
         sub = ProSubmission(task_id=tid, files=merged.files, attempt=attempt, edit_errors=merged.errors)
-        ctx = TaskContext(LANE_ARM, tid, ex, ts, "merge", attempt, contract, split, h.t2_reviewer(LANE_ARM, tid, ex))
+        ctx = TaskContext(arm, tid, ex, ts, "merge", attempt, contract, split, h.t2_reviewer(arm, tid, ex))
         results = list(gates(sub, ctx)) if gates is not None else []
         passed = bool(results) and all(r.verdict == "pass" for r in results)
         reason = "; ".join(f"[{r.gate}] {r.reason}" for r in results if r.verdict != "pass")
@@ -1172,12 +1293,15 @@ def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfi
     final = None
     while True:
         to_run = [states[i] for i in (escalated or tuple(states))]
-        restore = _prefetch_round(h, cfg, [(st.task_id, st.lane.lane_id, *next_request(st)) for st in to_run], rnd)
+        restore = _prefetch_round(h, cfg, [(st.task_id, st.lane.lane_id, *next_request(st)) for st in to_run], rnd, arm)
         try:
             for st in to_run:
                 run_lane(st, rnd)
         finally:
             restore()
+        if board:  # the round's changes and notes go on the blackboard for the next round
+            blackboard.extend(board_note(ex, st.lane.lane_id, cfg.ladder[st.step][0], rnd, st.sub.files,
+                                         st.sub.response) for st in to_run)
         for st in to_run:
             _emit_clashes(h, tid, plan_id, lane_round_clashes(st.lane.lane_id, st.sub, st.__dict__.pop("requests", [])),
                           rnd, "governed")
@@ -1222,13 +1346,13 @@ def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfi
         r = h.evaluate(sub, ctx)
         if not passed and r is not None:
             h.emit("outcome.scored", "scorer", {"gate_seq": gseq, "task_id": ex.id, "solved": bool(r.solved),
-                                                "log_task_id": tid, "arm": LANE_ARM, "replay": "merged"})
+                                                "log_task_id": tid, "arm": arm, "replay": "merged"})
         rounds.append({"round": rnd, "passed": passed, "solved": bool(r and r.solved), "top_step": top,
                        "evidence": dict(r.evidence) if r else {}, "sub": sub, "ctx": ctx})
 
         if rnd == 0:
-            _shadow(h, ex, ts, split, tid, plan, plan_id, states, ctx)
-            _derived(h, FIRST_ARM, ex, split, tid, rounds[0], "first", passed)
+            _shadow(h, ex, ts, split, tid, plan, plan_id, states, ctx, arm)
+            _derived(h, f"{arm}-first", ex, split, tid, rounds[0], "first", passed, arm)
 
         if passed:
             final = rounds[-1]
@@ -1246,7 +1370,7 @@ def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfi
             st.last_feedback = feedback
             nxt = cfg.ladder[st.step + 1]
             h.emit("route.decided", "kernel", {
-                "task_id": st.task_id, "arm": LANE_ARM, "decision": "lane_escalation", "action": nxt[1],
+                "task_id": st.task_id, "arm": arm, "decision": "lane_escalation", "action": nxt[1],
                 "propensities": {nxt[1]: 1.0}, "router_hash": sha256_json({"ladder": [list(x) for x in cfg.ladder]}),
                 "features": h.features(ex, ts, attempt=2, submission=st.sub, results=results, contract=contract),
                 "step": nxt[0], "rng_seed": 0})
@@ -1264,25 +1388,26 @@ def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfi
     upto = [x for x in rounds if x["top_step"] <= sonnet_idx]
     if upto:
         pick = next((x for x in upto if x["passed"]), upto[-1])
-        _derived(h, SONNET_ARM, ex, split, tid, pick, "sonnet", pick["passed"])
+        _derived(h, f"{arm}-sonnet", ex, split, tid, pick, "sonnet", pick["passed"], arm)
     solved = bool(final["solved"]) and passed
     h.emit("outcome.scored", "scorer", {
-        "arm": LANE_ARM, "task_id": ex.id, "solved": solved, "shipped": passed, "log_task_id": tid, "split": split,
+        "arm": arm, "task_id": ex.id, "solved": solved, "shipped": passed, "log_task_id": tid, "split": split,
         "model": "lanes", "evidence": final["evidence"], "gate_passed": passed, "rounds": len(rounds), "k": plan.k,
         "plan_id": plan_id, "fallback": plan.fallback,
         "tiers": {i: cfg.ladder[s.step][0] for i, s in states.items()}})
     return solved
 
 
-def _derived(h, arm: str, ex: ProExercise, split: str, tid: str, rec: Mapping[str, Any], merge: str, shipped: bool) -> None:
+def _derived(h, arm: str, ex: ProExercise, split: str, tid: str, rec: Mapping[str, Any], merge: str, shipped: bool,
+             parent: str = LANE_ARM) -> None:
     h.emit("outcome.scored", "scorer", {
-        "arm": arm, "derived_from": LANE_ARM, "merge": merge, "task_id": ex.id,
+        "arm": arm, "derived_from": parent, "merge": merge, "task_id": ex.id,
         "solved": bool(rec["solved"]) and shipped, "shipped": shipped, "log_task_id": tid, "split": split,
         "model": "lanes", "evidence": dict(rec["evidence"]), "gate_passed": rec["passed"], "round": rec["round"]})
 
 
 def _shadow(h, ex: ProExercise, ts: ProTestSplit, split: str, tid: str, plan: LanePlan, plan_id: str,
-            states: Mapping[str, _LaneState], ctx: TaskContext) -> bool:
+            states: Mapping[str, _LaneState], ctx: TaskContext, arm: str = LANE_ARM) -> bool:
     """La-shadow: the first replies joined with no contracts, scored once on the score tests."""
     replies = {i: s.first.response for i, s in states.items()}
     m = merge_shadow(plan, replies, ex.context.files)
@@ -1299,7 +1424,7 @@ def _shadow(h, ex: ProExercise, ts: ProTestSplit, split: str, tid: str, plan: La
         "merged_sha256": sha256_json(dict(m.files)), "verdict": "pass", "gated": False,
         "files": sorted(m.files), "errors": list(m.errors)[:50]})
     h.emit("outcome.scored", "scorer", {
-        "arm": SHADOW_ARM, "derived_from": LANE_ARM, "merge": "shadow", "task_id": ex.id, "solved": bool(r.solved),
+        "arm": f"{arm}-shadow", "derived_from": arm, "merge": "shadow", "task_id": ex.id, "solved": bool(r.solved),
         "shipped": True, "log_task_id": tid, "split": split, "model": "lanes", "evidence": dict(r.evidence)})
     return bool(r.solved)
 
@@ -1493,7 +1618,8 @@ class _Prefetched:
         return getattr(self.inner, name)
 
 
-def _prefetch_round(h, cfg: LaneConfig, reqs: Sequence[tuple[str, str, str, str, str | None, str]], rnd: int):
+def _prefetch_round(h, cfg: LaneConfig, reqs: Sequence[tuple[str, str, str, str, str | None, str]], rnd: int,
+                    arm: str = LANE_ARM):
     """Send a round's local lane requests concurrently (at most ``cfg.concurrency`` at once), then let
     the round run as before: each lane's ``_work`` receives its prefetched answer in plan order, so the
     single writer still emits every event in the same order. Only local models are prefetched: they
@@ -1511,7 +1637,7 @@ def _prefetch_round(h, cfg: LaneConfig, reqs: Sequence[tuple[str, str, str, str,
         try:
             c = inner.complete(model=model, system=LANE_SYSTEM, messages=[Message("user", prompt)],
                                max_tokens=cfg.lane_max_tokens, effort=effort,
-                               tags={"arm": LANE_ARM, "role": "worker", "task_id": task_id, "lane_id": lane_id,
+                               tags={"arm": arm, "role": "worker", "task_id": task_id, "lane_id": lane_id,
                                      "tier": step, "round": rnd, "concurrent": len(local)})
         except Exception:  # noqa: BLE001 - the serial path retries and reports it
             return None
