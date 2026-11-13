@@ -1,0 +1,996 @@
+{
+  "preflight": {
+    "n": 37,
+    "order": [
+      "instance_element-hq__element-web-aec454dd6feeb93000380523cbb0b3681c0275fd-vnan",
+      "instance_NodeBB__NodeBB-04998908ba6721d64eba79ae3b65a351dcfbc5b5-vnan",
+      "instance_internetarchive__openlibrary-6fdbbeee4c0a7e976ff3e46fb1d36f4eb110c428-v08d8e8889ec945ab821fb156c04c7d2e2810debb",
+      "instance_ansible__ansible-949c503f2ef4b2c5d668af0492a5c0db1ab86140-v0f01c69f1e2528b935359cfe578530722bca2c59",
+      "instance_element-hq__element-web-fe14847bb9bb07cab1b9c6c54335ff22ca5e516a-vnan",
+      "instance_ansible__ansible-d2f80991180337e2be23d6883064a67dcbaeb662-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5",
+      "instance_qutebrowser__qutebrowser-bedc9f7fadf93f83d8dee95feeecb9922b6f063f-v2ef375ac784985212b1805e1d0431dc8f1b3c171",
+      "instance_internetarchive__openlibrary-7cbfb812ef0e1f9716e2d6e85d538a96fcb79d13-vfa6ff903cb27f336e17654595dd900fa943dcd91",
+      "instance_qutebrowser__qutebrowser-e5340c449f23608803c286da0563b62f58ba25b0-v059c6fdc75567943479b23ebca7c07b5e9a7f34c",
+      "instance_qutebrowser__qutebrowser-de4a1c1a2839b5b49c3d4ce21d39de48d24e2091-v2ef375ac784985212b1805e1d0431dc8f1b3c171",
+      "instance_internetarchive__openlibrary-0a90f9f0256e4f933523e9842799e39f95ae29ce-v76304ecdb3a5954fcf13feb710e8c40fcf24b73c",
+      "instance_ansible__ansible-bec27fb4c0a40c5f8bbcf26a475704227d65ee73-v30a923fb5c164d6cd18280c02422f75e611e8fb2",
+      "instance_element-hq__element-web-582a1b093fc0b77538052f45cbb9c7295f991b51-vnan",
+      "instance_internetarchive__openlibrary-7f6b722a10f822171501d027cad60afe53337732-ve8c8d62a2b60610a3c4631f5f23ed866bada9818",
+      "instance_internetarchive__openlibrary-308a35d6999427c02b1dbf5211c033ad3b352556-ve8c8d62a2b60610a3c4631f5f23ed866bada9818",
+      "instance_NodeBB__NodeBB-f1a80d48cc45877fcbadf34c2345dd9709722c7f-v4fbcfae8b15e4ce5d132c408bca69ebb9cf146ed",
+      "instance_internetarchive__openlibrary-30bc73a1395fba2300087c7f307e54bb5372b60a-v76304ecdb3a5954fcf13feb710e8c40fcf24b73c",
+      "instance_qutebrowser__qutebrowser-3fd8e12949b8feda401930574facf09dd4180bba",
+      "instance_NodeBB__NodeBB-a5afad27e52fd336163063ba40dcadc80233ae10-vd59a5728dfc977f44533186ace531248c2917516",
+      "instance_element-hq__element-web-33e8edb3d508d6eefb354819ca693b7accc695e7",
+      "instance_internetarchive__openlibrary-92db3454aeaa02f89b4cdbc3103f7e95c9759f92-v2c55207218fb8a0138425cbf7d9675272e240b90",
+      "instance_internetarchive__openlibrary-8a5a63af6e0be406aa6c8c9b6d5f28b2f1b6af5a-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4",
+      "instance_qutebrowser__qutebrowser-394bfaed6544c952c6b3463751abab3176ad4997-vafb3e8e01b31319c66c4e666b8a3b1d8ba55db24",
+      "instance_ansible__ansible-de5858f48dc9e1ce9117034e0d7e76806f420ca8-v1055803c3a812189a1133297f7f5468579283f86",
+      "instance_internetarchive__openlibrary-798a582540019363d14b2090755cc7b89a350788-v430f20c722405e462d9ef44dee7d34c41e76fe7a",
+      "instance_internetarchive__openlibrary-7c8dc180281491ccaa1b4b43518506323750d1e4-v298a7a812ceed28c4c18355a091f1b268fe56d86",
+      "instance_element-hq__element-web-d06cf09bf0b3d4a0fbe6bd32e4115caea2083168-vnan",
+      "instance_internetarchive__openlibrary-4b7ea2977be2747496ba792a678940baa985f7ea-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4",
+      "instance_ansible__ansible-395e5e20fab9cad517243372fa3c3c5d9e09ab2a-v7eee2454f617569fd6889f2211f75bc02a35f9f8",
+      "instance_internetarchive__openlibrary-c506c1b0b678892af5cb22c1c1dbc35d96787a0a-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4",
+      "instance_ansible__ansible-bf98f031f3f5af31a2d78dc2f0a58fe92ebae0bb-v1055803c3a812189a1133297f7f5468579283f86",
+      "instance_internetarchive__openlibrary-1be7de788a444f6255e89c10ef6aa608550604a8-v29f82c9cf21d57b242f8d8b0e541525d259e2d63",
+      "instance_ansible__ansible-d58e69c82d7edd0583dd8e78d76b075c33c3151e-v173091e2e36d38c978002990795f66cfc0af30ad",
+      "instance_NodeBB__NodeBB-8ca65b0c78c67c1653487c02d1135e1b702185e1-vf2cf3cbd463b7ad942381f1c6d077626485a1e9e",
+      "instance_qutebrowser__qutebrowser-85b867fe8d4378c8e371f055c70452f546055854-v2ef375ac784985212b1805e1d0431dc8f1b3c171",
+      "instance_ansible__ansible-5260527c4a71bfed99d803e687dd19619423b134-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5",
+      "instance_NodeBB__NodeBB-9c576a0758690f45a6ca03b5884c601e473bf2c1-vd59a5728dfc977f44533186ace531248c2917516"
+    ],
+    "expected_usd": 2.389,
+    "expected_by_arm": {
+      "La": 2.389,
+      "D_shipped": 0,
+      "D_measurement": 0
+    },
+    "la_by_part": {
+      "planner": 2.389,
+      "lanes": 0.0,
+      "edit_repairs": 0.0,
+      "haiku_repair_round": 0.0,
+      "sonnet": 0.0,
+      "opus": 0.0
+    },
+    "worst_case_usd": 16.0276,
+    "margin": 1.2,
+    "cap_usd": 3.0,
+    "fits": true,
+    "assumptions": {
+      "plan_out": 1199,
+      "haiku_intercept": 2697.0,
+      "haiku_slope": 12.41,
+      "opus_intercept": 1137.0,
+      "opus_slope": 5.05,
+      "sonnet_factor": 1.5,
+      "edit_repair_rate": 0.08,
+      "edit_repair_out": 2041,
+      "p_block": 0.45,
+      "blamed": 1.3,
+      "q_opus": 0.45,
+      "retry_extra": 3000,
+      "escalation_repair": 1.1,
+      "p_fork": 0.5,
+      "repair_rate": 0.3,
+      "lanes_k": 3
+    },
+    "lane_config": {
+      "planner_model": "claude-opus-5-5",
+      "planner_effort": "low",
+      "planner_max_tokens": 8000,
+      "max_lanes": 8,
+      "ladder": [
+        [
+          "local",
+          "local:qwen3.8-27b",
+          null
+        ],
+        [
+          "local-repair",
+          "local:qwen3.8-27b",
+          null
+        ]
+      ],
+      "lane_max_tokens": 8000,
+      "max_rounds": 3,
+      "plan_repair": true,
+      "lane_prompt_max_tokens": 90000,
+      "concurrency": 8,
+      "symbol_lanes": true,
+      "task_seconds": 600.0
+    },
+    "rows": [
+      {
+        "la": {
+          "task_id": "instance_element-hq__element-web-aec454dd6feeb93000380523cbb0b3681c0275fd-vnan",
+          "k": 3,
+          "planner_input": 9990,
+          "lane_inputs": [
+            28819,
+            5728,
+            4666
+          ],
+          "gold_lines": 488,
+          "expected": 0.06394,
+          "worst": 0.43191999999999997,
+          "by_part": {
+            "planner": 0.06394,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_NodeBB__NodeBB-04998908ba6721d64eba79ae3b65a351dcfbc5b5-vnan",
+          "k": 3,
+          "planner_input": 5722,
+          "lane_inputs": [
+            16132,
+            6126,
+            8111
+          ],
+          "gold_lines": 151,
+          "expected": 0.046868,
+          "worst": 0.397776,
+          "by_part": {
+            "planner": 0.046868,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_internetarchive__openlibrary-6fdbbeee4c0a7e976ff3e46fb1d36f4eb110c428-v08d8e8889ec945ab821fb156c04c7d2e2810debb",
+          "k": 3,
+          "planner_input": 15074,
+          "lane_inputs": [
+            16487,
+            20327,
+            21487
+          ],
+          "gold_lines": 269,
+          "expected": 0.084276,
+          "worst": 0.472592,
+          "by_part": {
+            "planner": 0.084276,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_ansible__ansible-949c503f2ef4b2c5d668af0492a5c0db1ab86140-v0f01c69f1e2528b935359cfe578530722bca2c59",
+          "k": 3,
+          "planner_input": 12453,
+          "lane_inputs": [
+            33426,
+            10422,
+            7384
+          ],
+          "gold_lines": 230,
+          "expected": 0.073792,
+          "worst": 0.451624,
+          "by_part": {
+            "planner": 0.073792,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_element-hq__element-web-fe14847bb9bb07cab1b9c6c54335ff22ca5e516a-vnan",
+          "k": 3,
+          "planner_input": 6398,
+          "lane_inputs": [
+            9771,
+            3421,
+            3570
+          ],
+          "gold_lines": 340,
+          "expected": 0.049572,
+          "worst": 0.403184,
+          "by_part": {
+            "planner": 0.049572,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_ansible__ansible-d2f80991180337e2be23d6883064a67dcbaeb662-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5",
+          "k": 3,
+          "planner_input": 7776,
+          "lane_inputs": [
+            8263,
+            20378,
+            4958
+          ],
+          "gold_lines": 310,
+          "expected": 0.055084,
+          "worst": 0.414208,
+          "by_part": {
+            "planner": 0.055084,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_qutebrowser__qutebrowser-bedc9f7fadf93f83d8dee95feeecb9922b6f063f-v2ef375ac784985212b1805e1d0431dc8f1b3c171",
+          "k": 3,
+          "planner_input": 19201,
+          "lane_inputs": [
+            25893,
+            9928,
+            12706
+          ],
+          "gold_lines": 164,
+          "expected": 0.100784,
+          "worst": 0.505608,
+          "by_part": {
+            "planner": 0.100784,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_internetarchive__openlibrary-7cbfb812ef0e1f9716e2d6e85d538a96fcb79d13-vfa6ff903cb27f336e17654595dd900fa943dcd91",
+          "k": 3,
+          "planner_input": 4581,
+          "lane_inputs": [
+            3854,
+            6587,
+            3722
+          ],
+          "gold_lines": 553,
+          "expected": 0.042304,
+          "worst": 0.388648,
+          "by_part": {
+            "planner": 0.042304,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_qutebrowser__qutebrowser-e5340c449f23608803c286da0563b62f58ba25b0-v059c6fdc75567943479b23ebca7c07b5e9a7f34c",
+          "k": 3,
+          "planner_input": 17600,
+          "lane_inputs": [
+            24544,
+            9759,
+            14043
+          ],
+          "gold_lines": 213,
+          "expected": 0.09438,
+          "worst": 0.4928,
+          "by_part": {
+            "planner": 0.09438,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_qutebrowser__qutebrowser-de4a1c1a2839b5b49c3d4ce21d39de48d24e2091-v2ef375ac784985212b1805e1d0431dc8f1b3c171",
+          "k": 3,
+          "planner_input": 7920,
+          "lane_inputs": [
+            11704,
+            4246,
+            7075
+          ],
+          "gold_lines": 542,
+          "expected": 0.05566,
+          "worst": 0.41535999999999995,
+          "by_part": {
+            "planner": 0.05566,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_internetarchive__openlibrary-0a90f9f0256e4f933523e9842799e39f95ae29ce-v76304ecdb3a5954fcf13feb710e8c40fcf24b73c",
+          "k": 3,
+          "planner_input": 11544,
+          "lane_inputs": [
+            11635,
+            13035,
+            6006
+          ],
+          "gold_lines": 170,
+          "expected": 0.070156,
+          "worst": 0.44435199999999997,
+          "by_part": {
+            "planner": 0.070156,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_ansible__ansible-bec27fb4c0a40c5f8bbcf26a475704227d65ee73-v30a923fb5c164d6cd18280c02422f75e611e8fb2",
+          "k": 3,
+          "planner_input": 12852,
+          "lane_inputs": [
+            25563,
+            13941,
+            25684
+          ],
+          "gold_lines": 467,
+          "expected": 0.075388,
+          "worst": 0.454816,
+          "by_part": {
+            "planner": 0.075388,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_element-hq__element-web-582a1b093fc0b77538052f45cbb9c7295f991b51-vnan",
+          "k": 3,
+          "planner_input": 9680,
+          "lane_inputs": [
+            4974,
+            26604,
+            20589
+          ],
+          "gold_lines": 163,
+          "expected": 0.0627,
+          "worst": 0.42944000000000004,
+          "by_part": {
+            "planner": 0.0627,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_internetarchive__openlibrary-7f6b722a10f822171501d027cad60afe53337732-ve8c8d62a2b60610a3c4631f5f23ed866bada9818",
+          "k": 3,
+          "planner_input": 13450,
+          "lane_inputs": [
+            21993,
+            11852,
+            12279
+          ],
+          "gold_lines": 1663,
+          "expected": 0.07778,
+          "worst": 0.4596,
+          "by_part": {
+            "planner": 0.07778,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_internetarchive__openlibrary-308a35d6999427c02b1dbf5211c033ad3b352556-ve8c8d62a2b60610a3c4631f5f23ed866bada9818",
+          "k": 3,
+          "planner_input": 18572,
+          "lane_inputs": [
+            21099,
+            18818,
+            26549
+          ],
+          "gold_lines": 244,
+          "expected": 0.098268,
+          "worst": 0.500576,
+          "by_part": {
+            "planner": 0.098268,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_NodeBB__NodeBB-f1a80d48cc45877fcbadf34c2345dd9709722c7f-v4fbcfae8b15e4ce5d132c408bca69ebb9cf146ed",
+          "k": 3,
+          "planner_input": 9640,
+          "lane_inputs": [
+            15357,
+            14765,
+            10853
+          ],
+          "gold_lines": 983,
+          "expected": 0.06254,
+          "worst": 0.42911999999999995,
+          "by_part": {
+            "planner": 0.06254,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_internetarchive__openlibrary-30bc73a1395fba2300087c7f307e54bb5372b60a-v76304ecdb3a5954fcf13feb710e8c40fcf24b73c",
+          "k": 3,
+          "planner_input": 4947,
+          "lane_inputs": [
+            5714,
+            6800,
+            2751
+          ],
+          "gold_lines": 623,
+          "expected": 0.043768,
+          "worst": 0.39157600000000004,
+          "by_part": {
+            "planner": 0.043768,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_qutebrowser__qutebrowser-3fd8e12949b8feda401930574facf09dd4180bba",
+          "k": 3,
+          "planner_input": 12517,
+          "lane_inputs": [
+            31241,
+            7644,
+            11086
+          ],
+          "gold_lines": 244,
+          "expected": 0.074048,
+          "worst": 0.452136,
+          "by_part": {
+            "planner": 0.074048,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_NodeBB__NodeBB-a5afad27e52fd336163063ba40dcadc80233ae10-vd59a5728dfc977f44533186ace531248c2917516",
+          "k": 3,
+          "planner_input": 5135,
+          "lane_inputs": [
+            14650,
+            7555,
+            11980
+          ],
+          "gold_lines": 188,
+          "expected": 0.04452,
+          "worst": 0.39308,
+          "by_part": {
+            "planner": 0.04452,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_element-hq__element-web-33e8edb3d508d6eefb354819ca693b7accc695e7",
+          "k": 3,
+          "planner_input": 11416,
+          "lane_inputs": [
+            10130,
+            32859,
+            21593
+          ],
+          "gold_lines": 1236,
+          "expected": 0.069644,
+          "worst": 0.443328,
+          "by_part": {
+            "planner": 0.069644,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_internetarchive__openlibrary-92db3454aeaa02f89b4cdbc3103f7e95c9759f92-v2c55207218fb8a0138425cbf7d9675272e240b90",
+          "k": 3,
+          "planner_input": 15492,
+          "lane_inputs": [
+            18942,
+            22090,
+            9116
+          ],
+          "gold_lines": 703,
+          "expected": 0.085948,
+          "worst": 0.475936,
+          "by_part": {
+            "planner": 0.085948,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_internetarchive__openlibrary-8a5a63af6e0be406aa6c8c9b6d5f28b2f1b6af5a-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4",
+          "k": 3,
+          "planner_input": 2753,
+          "lane_inputs": [
+            4126,
+            2091,
+            2174
+          ],
+          "gold_lines": 251,
+          "expected": 0.034992,
+          "worst": 0.374024,
+          "by_part": {
+            "planner": 0.034992,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_qutebrowser__qutebrowser-394bfaed6544c952c6b3463751abab3176ad4997-vafb3e8e01b31319c66c4e666b8a3b1d8ba55db24",
+          "k": 3,
+          "planner_input": 11695,
+          "lane_inputs": [
+            9969,
+            11181,
+            12850
+          ],
+          "gold_lines": 560,
+          "expected": 0.07076,
+          "worst": 0.44555999999999996,
+          "by_part": {
+            "planner": 0.07076,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_ansible__ansible-de5858f48dc9e1ce9117034e0d7e76806f420ca8-v1055803c3a812189a1133297f7f5468579283f86",
+          "k": 3,
+          "planner_input": 9130,
+          "lane_inputs": [
+            21572,
+            24115,
+            9414
+          ],
+          "gold_lines": 254,
+          "expected": 0.0605,
+          "worst": 0.42504,
+          "by_part": {
+            "planner": 0.0605,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_internetarchive__openlibrary-798a582540019363d14b2090755cc7b89a350788-v430f20c722405e462d9ef44dee7d34c41e76fe7a",
+          "k": 3,
+          "planner_input": 19331,
+          "lane_inputs": [
+            21607,
+            19233,
+            27057
+          ],
+          "gold_lines": 239,
+          "expected": 0.101304,
+          "worst": 0.506648,
+          "by_part": {
+            "planner": 0.101304,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_internetarchive__openlibrary-7c8dc180281491ccaa1b4b43518506323750d1e4-v298a7a812ceed28c4c18355a091f1b268fe56d86",
+          "k": 3,
+          "planner_input": 5502,
+          "lane_inputs": [
+            5145,
+            5197,
+            3984
+          ],
+          "gold_lines": 162,
+          "expected": 0.045988,
+          "worst": 0.39601600000000003,
+          "by_part": {
+            "planner": 0.045988,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_element-hq__element-web-d06cf09bf0b3d4a0fbe6bd32e4115caea2083168-vnan",
+          "k": 3,
+          "planner_input": 7473,
+          "lane_inputs": [
+            11597,
+            10010,
+            3776
+          ],
+          "gold_lines": 209,
+          "expected": 0.053872,
+          "worst": 0.41178400000000004,
+          "by_part": {
+            "planner": 0.053872,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_internetarchive__openlibrary-4b7ea2977be2747496ba792a678940baa985f7ea-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4",
+          "k": 3,
+          "planner_input": 14269,
+          "lane_inputs": [
+            24321,
+            8333,
+            12711
+          ],
+          "gold_lines": 276,
+          "expected": 0.081056,
+          "worst": 0.466152,
+          "by_part": {
+            "planner": 0.081056,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_ansible__ansible-395e5e20fab9cad517243372fa3c3c5d9e09ab2a-v7eee2454f617569fd6889f2211f75bc02a35f9f8",
+          "k": 3,
+          "planner_input": 8169,
+          "lane_inputs": [
+            9899,
+            18334,
+            9143
+          ],
+          "gold_lines": 295,
+          "expected": 0.056656,
+          "worst": 0.41735199999999995,
+          "by_part": {
+            "planner": 0.056656,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_internetarchive__openlibrary-c506c1b0b678892af5cb22c1c1dbc35d96787a0a-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4",
+          "k": 3,
+          "planner_input": 11195,
+          "lane_inputs": [
+            21955,
+            13611,
+            12492
+          ],
+          "gold_lines": 288,
+          "expected": 0.06876,
+          "worst": 0.44155999999999995,
+          "by_part": {
+            "planner": 0.06876,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_ansible__ansible-bf98f031f3f5af31a2d78dc2f0a58fe92ebae0bb-v1055803c3a812189a1133297f7f5468579283f86",
+          "k": 3,
+          "planner_input": 8906,
+          "lane_inputs": [
+            7024,
+            29186,
+            10226
+          ],
+          "gold_lines": 108,
+          "expected": 0.059604,
+          "worst": 0.42324799999999996,
+          "by_part": {
+            "planner": 0.059604,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_internetarchive__openlibrary-1be7de788a444f6255e89c10ef6aa608550604a8-v29f82c9cf21d57b242f8d8b0e541525d259e2d63",
+          "k": 3,
+          "planner_input": 8836,
+          "lane_inputs": [
+            11333,
+            6096,
+            6575
+          ],
+          "gold_lines": 148,
+          "expected": 0.059324,
+          "worst": 0.42268799999999995,
+          "by_part": {
+            "planner": 0.059324,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_ansible__ansible-d58e69c82d7edd0583dd8e78d76b075c33c3151e-v173091e2e36d38c978002990795f66cfc0af30ad",
+          "k": 3,
+          "planner_input": 10391,
+          "lane_inputs": [
+            23122,
+            11236,
+            11976
+          ],
+          "gold_lines": 136,
+          "expected": 0.065544,
+          "worst": 0.43512799999999996,
+          "by_part": {
+            "planner": 0.065544,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_NodeBB__NodeBB-8ca65b0c78c67c1653487c02d1135e1b702185e1-vf2cf3cbd463b7ad942381f1c6d077626485a1e9e",
+          "k": 3,
+          "planner_input": 3093,
+          "lane_inputs": [
+            2376,
+            3450,
+            2013
+          ],
+          "gold_lines": 109,
+          "expected": 0.036352,
+          "worst": 0.37674399999999997,
+          "by_part": {
+            "planner": 0.036352,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_qutebrowser__qutebrowser-85b867fe8d4378c8e371f055c70452f546055854-v2ef375ac784985212b1805e1d0431dc8f1b3c171",
+          "k": 3,
+          "planner_input": 8712,
+          "lane_inputs": [
+            20094,
+            5583,
+            8830
+          ],
+          "gold_lines": 106,
+          "expected": 0.058828,
+          "worst": 0.42169599999999996,
+          "by_part": {
+            "planner": 0.058828,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_ansible__ansible-5260527c4a71bfed99d803e687dd19619423b134-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5",
+          "k": 3,
+          "planner_input": 8689,
+          "lane_inputs": [
+            4028,
+            29889,
+            4844
+          ],
+          "gold_lines": 106,
+          "expected": 0.058736,
+          "worst": 0.421512,
+          "by_part": {
+            "planner": 0.058736,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      },
+      {
+        "la": {
+          "task_id": "instance_NodeBB__NodeBB-9c576a0758690f45a6ca03b5884c601e473bf2c1-vd59a5728dfc977f44533186ace531248c2917516",
+          "k": 3,
+          "planner_input": 5341,
+          "lane_inputs": [
+            6218,
+            6439,
+            9362
+          ],
+          "gold_lines": 135,
+          "expected": 0.045344,
+          "worst": 0.39472799999999997,
+          "by_part": {
+            "planner": 0.045344,
+            "lanes": 0.0,
+            "edit_repairs": 0.0,
+            "haiku_repair_round": 0.0,
+            "sonnet": 0.0,
+            "opus": 0.0
+          }
+        },
+        "d": null
+      }
+    ]
+  },
+  "excluded": {}
+}

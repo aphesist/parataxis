@@ -1,0 +1,247 @@
+{
+ "instance_element-hq__element-web-aec454dd6feeb93000380523cbb0b3681c0275fd-vnan": {
+  "repo": "element-hq/element-web",
+  "base_commit": "1c039fcd3880ef4fefa58812d375104d2d70fe6c",
+  "committer_date": "2023-03-27T07:39:34+00:00"
+ },
+ "instance_NodeBB__NodeBB-04998908ba6721d64eba79ae3b65a351dcfbc5b5-vnan": {
+  "repo": "NodeBB/NodeBB",
+  "base_commit": "1e137b07052bc3ea0da44ed201702c94055b8ad2",
+  "committer_date": "2023-06-05T09:18:55+00:00"
+ },
+ "instance_internetarchive__openlibrary-6fdbbeee4c0a7e976ff3e46fb1d36f4eb110c428-v08d8e8889ec945ab821fb156c04c7d2e2810debb": {
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "71b18af1fa3b1e0ea6acb368037736be759a8bca",
+  "committer_date": "2023-12-27T14:52:46-08:00"
+ },
+ "instance_ansible__ansible-949c503f2ef4b2c5d668af0492a5c0db1ab86140-v0f01c69f1e2528b935359cfe578530722bca2c59": {
+  "repo": "ansible/ansible",
+  "base_commit": "375d3889de9f437bc120ade623c170198629375d",
+  "committer_date": "2024-05-29T09:44:54-07:00"
+ },
+ "instance_element-hq__element-web-fe14847bb9bb07cab1b9c6c54335ff22ca5e516a-vnan": {
+  "repo": "element-hq/element-web",
+  "base_commit": "ad9cbe93994888e8f8ba88ce3614dc041a698930",
+  "committer_date": "2022-09-28T12:46:41+02:00"
+ },
+ "instance_ansible__ansible-d2f80991180337e2be23d6883064a67dcbaeb662-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5": {
+  "repo": "ansible/ansible",
+  "base_commit": "f9a450551de47ac2b9d1d7e66a103cbf8f05c37f",
+  "committer_date": "2022-08-17T14:42:47-04:00"
+ },
+ "instance_qutebrowser__qutebrowser-bedc9f7fadf93f83d8dee95feeecb9922b6f063f-v2ef375ac784985212b1805e1d0431dc8f1b3c171": {
+  "repo": "qutebrowser/qutebrowser",
+  "base_commit": "0e624e64695e8f566c7391f65f737311aeb6b2eb",
+  "committer_date": "2020-11-20T11:17:24+01:00"
+ },
+ "instance_internetarchive__openlibrary-7cbfb812ef0e1f9716e2d6e85d538a96fcb79d13-vfa6ff903cb27f336e17654595dd900fa943dcd91": {
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "20e8fee0e879ca47c0a1259fec0a5ab1e292aa1f",
+  "committer_date": "2021-03-29T15:55:18-04:00"
+ },
+ "instance_qutebrowser__qutebrowser-e5340c449f23608803c286da0563b62f58ba25b0-v059c6fdc75567943479b23ebca7c07b5e9a7f34c": {
+  "repo": "qutebrowser/qutebrowser",
+  "base_commit": "ae910113a7a52a81c4574a18937b7feba48b387d",
+  "committer_date": "2022-08-23T18:31:41+02:00"
+ },
+ "instance_qutebrowser__qutebrowser-de4a1c1a2839b5b49c3d4ce21d39de48d24e2091-v2ef375ac784985212b1805e1d0431dc8f1b3c171": {
+  "repo": "qutebrowser/qutebrowser",
+  "base_commit": "6e7bb038fdab304eb3b93dfbb57a49a48ccca287",
+  "committer_date": "2020-07-09T10:14:39+02:00"
+ },
+ "instance_internetarchive__openlibrary-0a90f9f0256e4f933523e9842799e39f95ae29ce-v76304ecdb3a5954fcf13feb710e8c40fcf24b73c": {
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "5c6c22f3d2edf2f1b10f5dc335e32cb6a5f40341",
+  "committer_date": "2023-03-09T18:39:13-08:00"
+ },
+ "instance_ansible__ansible-bec27fb4c0a40c5f8bbcf26a475704227d65ee73-v30a923fb5c164d6cd18280c02422f75e611e8fb2": {
+  "repo": "ansible/ansible",
+  "base_commit": "6d34eb88d95c02013d781a29dfffaaf2901cd81f",
+  "committer_date": "2024-01-29T10:33:33+01:00"
+ },
+ "instance_element-hq__element-web-582a1b093fc0b77538052f45cbb9c7295f991b51-vnan": {
+  "repo": "element-hq/element-web",
+  "base_commit": "ec6bb880682286216458d73560aa91746d4f099b",
+  "committer_date": "2022-01-19T13:37:19+00:00"
+ },
+ "instance_internetarchive__openlibrary-7f6b722a10f822171501d027cad60afe53337732-ve8c8d62a2b60610a3c4631f5f23ed866bada9818": {
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "febda3f008cb4d4e4e0568ab4d671992ceea07cf",
+  "committer_date": "2022-11-22T12:56:10-05:00"
+ },
+ "instance_internetarchive__openlibrary-308a35d6999427c02b1dbf5211c033ad3b352556-ve8c8d62a2b60610a3c4631f5f23ed866bada9818": {
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "cb6c053eba49facef557ee95d587f6d6c93caf3a",
+  "committer_date": "2023-11-30T13:47:26-08:00"
+ },
+ "instance_NodeBB__NodeBB-f1a80d48cc45877fcbadf34c2345dd9709722c7f-v4fbcfae8b15e4ce5d132c408bca69ebb9cf146ed": {
+  "repo": "NodeBB/NodeBB",
+  "base_commit": "c1f873b302b47548a508c7fcc403942db43ea690",
+  "committer_date": "2023-09-25T11:53:18-04:00"
+ },
+ "instance_internetarchive__openlibrary-30bc73a1395fba2300087c7f307e54bb5372b60a-v76304ecdb3a5954fcf13feb710e8c40fcf24b73c": {
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "540853735859789920caf9ee78a762ebe14f6103",
+  "committer_date": "2023-08-23T08:15:03-07:00"
+ },
+ "instance_qutebrowser__qutebrowser-3fd8e12949b8feda401930574facf09dd4180bba": {
+  "repo": "qutebrowser/qutebrowser",
+  "base_commit": "a19634474246739027f826968ea34e720c0ec987",
+  "committer_date": "2023-08-15T19:31:36+02:00"
+ },
+ "instance_NodeBB__NodeBB-a5afad27e52fd336163063ba40dcadc80233ae10-vd59a5728dfc977f44533186ace531248c2917516": {
+  "repo": "NodeBB/NodeBB",
+  "base_commit": "7800016f2f1b89d2d3cfea6a7da7c77096b7b927",
+  "committer_date": "2025-04-25T09:04:15-04:00"
+ },
+ "instance_element-hq__element-web-33e8edb3d508d6eefb354819ca693b7accc695e7": {
+  "repo": "element-hq/element-web",
+  "base_commit": "83612dd4adeb2a4dad77655ec8969fcb1c555e6f",
+  "committer_date": "2021-03-26T15:01:31+00:00"
+ },
+ "instance_internetarchive__openlibrary-92db3454aeaa02f89b4cdbc3103f7e95c9759f92-v2c55207218fb8a0138425cbf7d9675272e240b90": {
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "4d2c696773853ee7fb4ec0ceb773351a52257447",
+  "committer_date": "2022-10-25T15:57:48+02:00"
+ },
+ "instance_internetarchive__openlibrary-8a5a63af6e0be406aa6c8c9b6d5f28b2f1b6af5a-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4": {
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "9d9f3a19983876522bcfd17c9079c46a17986cb3",
+  "committer_date": "2025-06-04T19:54:29-04:00"
+ },
+ "instance_qutebrowser__qutebrowser-394bfaed6544c952c6b3463751abab3176ad4997-vafb3e8e01b31319c66c4e666b8a3b1d8ba55db24": {
+  "repo": "qutebrowser/qutebrowser",
+  "base_commit": "d1164925c55f2417f1c3130b0196830bc2a3d25d",
+  "committer_date": "2021-02-10T16:13:22+01:00"
+ },
+ "instance_ansible__ansible-de5858f48dc9e1ce9117034e0d7e76806f420ca8-v1055803c3a812189a1133297f7f5468579283f86": {
+  "repo": "ansible/ansible",
+  "base_commit": "a1730af91f94552e8aaff4bedfb8dcae00bd284d",
+  "committer_date": "2020-11-09T14:45:09-05:00"
+ },
+ "instance_internetarchive__openlibrary-798a582540019363d14b2090755cc7b89a350788-v430f20c722405e462d9ef44dee7d34c41e76fe7a": {
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "a8db93460b49a39fc3bd8639e34abfca9303236f",
+  "committer_date": "2023-11-23T08:24:13-08:00"
+ },
+ "instance_internetarchive__openlibrary-7c8dc180281491ccaa1b4b43518506323750d1e4-v298a7a812ceed28c4c18355a091f1b268fe56d86": {
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "a797a05d077f8896c5d8f480b3620eb1ee398f8c",
+  "committer_date": "2023-09-18T07:36:59-07:00"
+ },
+ "instance_element-hq__element-web-d06cf09bf0b3d4a0fbe6bd32e4115caea2083168-vnan": {
+  "repo": "element-hq/element-web",
+  "base_commit": "2f8e98242c6de16cbfb6ebb6bc29cfe404b343cb",
+  "committer_date": "2024-11-06T09:02:22+00:00"
+ },
+ "instance_internetarchive__openlibrary-4b7ea2977be2747496ba792a678940baa985f7ea-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4": {
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "86d9b8a203cab5bc446614f3cbffd77b4751084a",
+  "committer_date": "2025-03-26T16:06:26-04:00"
+ },
+ "instance_ansible__ansible-395e5e20fab9cad517243372fa3c3c5d9e09ab2a-v7eee2454f617569fd6889f2211f75bc02a35f9f8": {
+  "repo": "ansible/ansible",
+  "base_commit": "cd64e0b070f8630e1dcc021e594ed42ea7afe304",
+  "committer_date": "2021-10-25T17:53:05-07:00"
+ },
+ "instance_internetarchive__openlibrary-c506c1b0b678892af5cb22c1c1dbc35d96787a0a-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4": {
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "2f590171b1d95cc124c44fb6ec647c85f1ca9581",
+  "committer_date": "2024-02-13T15:26:45-08:00"
+ },
+ "instance_ansible__ansible-bf98f031f3f5af31a2d78dc2f0a58fe92ebae0bb-v1055803c3a812189a1133297f7f5468579283f86": {
+  "repo": "ansible/ansible",
+  "base_commit": "17332532973343248297e3d3c746738d1f3b2f56",
+  "committer_date": "2020-07-22T11:59:18-05:00"
+ },
+ "instance_internetarchive__openlibrary-1be7de788a444f6255e89c10ef6aa608550604a8-v29f82c9cf21d57b242f8d8b0e541525d259e2d63": {
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "8b933806b52d3785f98d2c397032c8b97a88feb2",
+  "committer_date": "2023-10-25T12:43:12+13:00"
+ },
+ "instance_ansible__ansible-d58e69c82d7edd0583dd8e78d76b075c33c3151e-v173091e2e36d38c978002990795f66cfc0af30ad": {
+  "repo": "ansible/ansible",
+  "base_commit": "a6e671db25381ed111bbad0ab3e7d97366395d05",
+  "committer_date": "2022-07-13T14:49:36+02:00"
+ },
+ "instance_NodeBB__NodeBB-8ca65b0c78c67c1653487c02d1135e1b702185e1-vf2cf3cbd463b7ad942381f1c6d077626485a1e9e": {
+  "repo": "NodeBB/NodeBB",
+  "base_commit": "f2c0c18879ffdeea8d643ffa05a188e43f14afee",
+  "committer_date": "2023-06-13T09:19:14+00:00"
+ },
+ "instance_qutebrowser__qutebrowser-85b867fe8d4378c8e371f055c70452f546055854-v2ef375ac784985212b1805e1d0431dc8f1b3c171": {
+  "repo": "qutebrowser/qutebrowser",
+  "base_commit": "c97257cac01d9f7d67fb42d0344cb4332c7a0833",
+  "committer_date": "2022-06-13T12:26:01+02:00"
+ },
+ "instance_ansible__ansible-5260527c4a71bfed99d803e687dd19619423b134-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5": {
+  "repo": "ansible/ansible",
+  "base_commit": "bf98f031f3f5af31a2d78dc2f0a58fe92ebae0bb",
+  "committer_date": "2020-07-22T14:49:37-05:00"
+ },
+ "instance_NodeBB__NodeBB-9c576a0758690f45a6ca03b5884c601e473bf2c1-vd59a5728dfc977f44533186ace531248c2917516": {
+  "repo": "NodeBB/NodeBB",
+  "base_commit": "09f3ac6574b3192497df0403306aff8d6f20448b",
+  "committer_date": "2022-10-17T16:49:15-04:00"
+ },
+ "instance_internetarchive__openlibrary-d109cc7e6e161170391f98f9a6fa1d02534c18e4-ve8c8d62a2b60610a3c4631f5f23ed866bada9818": {
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "daf93507208f2206f8950e3bb5fffac7caf80520",
+  "committer_date": "2024-01-16T13:47:56-05:00"
+ },
+ "instance_ansible__ansible-ecea15c508f0e081525be036cf76bbb56dbcdd9d-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5": {
+  "repo": "ansible/ansible",
+  "base_commit": "01e7915b0a9778a934a0f0e9e9d110dbef7e31ec",
+  "committer_date": "2020-05-15T22:23:17-07:00"
+ },
+ "instance_NodeBB__NodeBB-767973717be700f46f06f3e7f4fc550c63509046-vnan": {
+  "repo": "NodeBB/NodeBB",
+  "base_commit": "a2ebf53b6098635c3abcab3fd9144c766e32b350",
+  "committer_date": "2022-04-06T01:06:19+00:00"
+ },
+ "instance_internetarchive__openlibrary-d40ec88713dc95ea791b252f92d2f7b75e107440-v13642507b4fc1f8d234172bf8129942da2c2ca26": {
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "cbfef314d45fe04e8bf7ebb239f1699606378634",
+  "committer_date": "2025-05-31T06:40:46+02:00"
+ },
+ "instance_internetarchive__openlibrary-b112069e31e0553b2d374abb5f9c5e05e8f3dbbe-ve8c8d62a2b60610a3c4631f5f23ed866bada9818": {
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "4825ff66e84545216c35d7a0bb01c177f5591b96",
+  "committer_date": "2024-08-14T19:09:57+02:00"
+ },
+ "instance_ansible__ansible-eea46a0d1b99a6dadedbb6a3502d599235fa7ec3-v390e508d27db7a51eece36bb6d9698b63a5b638a": {
+  "repo": "ansible/ansible",
+  "base_commit": "07e7b69c04116f598ed2376616cbb46343d9a0e9",
+  "committer_date": "2019-08-01T15:14:17+05:30"
+ },
+ "instance_element-hq__element-web-66d0b318bc6fee0d17b54c1781d6ab5d5d323135-vnan": {
+  "repo": "element-hq/element-web",
+  "base_commit": "04bc8fb71c4a1ee1eb1f0c4a1de1641d353e9f2c",
+  "committer_date": "2022-11-04T10:48:08+00:00"
+ },
+ "instance_ansible__ansible-b748edea457a4576847a10275678127895d2f02f-v1055803c3a812189a1133297f7f5468579283f86": {
+  "repo": "ansible/ansible",
+  "base_commit": "08da8f49b83adec1427abb350d734e6c0569410e",
+  "committer_date": "2020-05-20T12:37:21-07:00"
+ },
+ "instance_internetarchive__openlibrary-630221ab686c64e75a2ce253c893c033e4814b2e-v93c53c13d5f9b383ebb411ee7750b49dcd1a34c6": {
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "247986f00311d9ee34009b0bb02d0d3bd7497ebd",
+  "committer_date": "2025-05-14T13:14:38-07:00"
+ },
+ "instance_element-hq__element-web-ad26925bb6628260cfe0fcf90ec0a8cba381f4a4-vnan": {
+  "repo": "element-hq/element-web",
+  "base_commit": "c0e40217f35e2d2a067bbb881c3871565eaf54b2",
+  "committer_date": "2023-03-08T11:48:58+00:00"
+ },
+ "instance_ansible__ansible-d72025be751c894673ba85caa063d835a0ad3a8c-v390e508d27db7a51eece36bb6d9698b63a5b638a": {
+  "repo": "ansible/ansible",
+  "base_commit": "ea164fdde79a3e624c28f90c74f57f06360d2333",
+  "committer_date": "2019-12-12T19:26:54-05:00"
+ },
+ "instance_internetarchive__openlibrary-25858f9f0c165df25742acf8309ce909773f0cdd-v13642507b4fc1f8d234172bf8129942da2c2ca26": {
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "322d7a46cdc965bfabbf9500e98fde098c9d95b2",
+  "committer_date": "2023-12-14T06:03:34-05:00"
+ }
+}

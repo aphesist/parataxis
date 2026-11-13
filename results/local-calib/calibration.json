@@ -1,0 +1,215 @@
+{
+ "preemptions_total": 0,
+ "passes": {
+  "La8": {
+   "logs": [
+    "logs/La8.jsonl"
+   ],
+   "solved": 4,
+   "n": 12,
+   "shadow_solved": 3,
+   "test_gated_tok_s_est": [
+    12.84,
+    1.56,
+    30.28
+   ],
+   "test_gated_tok_s": [
+    10.79,
+    1.6,
+    25.22
+   ],
+   "raw_tok_s": [
+    112.95,
+    93.8,
+    129.78
+   ],
+   "aggregate_tok_s": {
+    "iqr": [
+     147.83,
+     187.69
+    ],
+    "median": 176.83,
+    "n": 12
+   },
+   "iqr_over_median": 0.225,
+   "capped_tasks": 0,
+   "local_requests": 48,
+   "cap_hits": 1,
+   "cap_hit_rate": 0.021,
+   "gated_submissions": 56,
+   "edit_failures": 6,
+   "edit_failure_rate": 0.107,
+   "edit_failure_kinds": {
+    "SEARCH text not found": 5,
+    "missing path": 1
+   },
+   "first_response_failures": {
+    "parse": 7,
+    "none": 43,
+    "apply": 5,
+    "truncated": 1
+   },
+   "rule4_output_caps_ok": true,
+   "rule5_noise_ok": true
+  },
+  "La4": {
+   "logs": [
+    "logs/La4.jsonl"
+   ],
+   "solved": 4,
+   "n": 12,
+   "shadow_solved": 5,
+   "test_gated_tok_s_est": [
+    11.36,
+    1.05,
+    30.69
+   ],
+   "test_gated_tok_s": [
+    9.66,
+    1.07,
+    25.78
+   ],
+   "raw_tok_s": [
+    115.78,
+    92.36,
+    131.89
+   ],
+   "aggregate_tok_s": {
+    "iqr": [
+     141.22,
+     183.04
+    ],
+    "median": 170.16,
+    "n": 12
+   },
+   "iqr_over_median": 0.246,
+   "capped_tasks": 0,
+   "local_requests": 42,
+   "cap_hits": 3,
+   "cap_hit_rate": 0.071,
+   "gated_submissions": 54,
+   "edit_failures": 4,
+   "edit_failure_rate": 0.074,
+   "edit_failure_kinds": {
+    "SEARCH text not found": 3,
+    "missing path": 1
+   },
+   "first_response_failures": {
+    "none": 46,
+    "parse": 5,
+    "truncated": 3
+   },
+   "rule4_output_caps_ok": true,
+   "rule5_noise_ok": true
+  },
+  "La2": {
+   "logs": [
+    "logs/La2.jsonl"
+   ],
+   "solved": 4,
+   "n": 12,
+   "shadow_solved": 4,
+   "test_gated_tok_s_est": [
+    17.36,
+    2.42,
+    41.01
+   ],
+   "test_gated_tok_s": null,
+   "raw_tok_s": [
+    128.64,
+    99.95,
+    157.32
+   ],
+   "aggregate_tok_s": {
+    "iqr": [
+     132.46,
+     208.43
+    ],
+    "median": 173.3,
+    "n": 12
+   },
+   "iqr_over_median": 0.438,
+   "capped_tasks": 0,
+   "local_requests": 44,
+   "cap_hits": 0,
+   "cap_hit_rate": 0.0,
+   "gated_submissions": 56,
+   "edit_failures": 3,
+   "edit_failure_rate": 0.054,
+   "edit_failure_kinds": {
+    "SEARCH text not found": 2,
+    "truncated block": 1
+   },
+   "first_response_failures": {
+    "parse": 6,
+    "none": 48,
+    "apply": 2
+   },
+   "rule4_output_caps_ok": true,
+   "rule5_noise_ok": false
+  },
+  "L1": {
+   "logs": [
+    "logs/L1.jsonl",
+    "logs/L1b.jsonl",
+    "logs/L1c.jsonl"
+   ],
+   "solved": 4,
+   "n": 12,
+   "shadow_solved": null,
+   "test_gated_tok_s_est": [
+    10.93,
+    1.59,
+    25.63
+   ],
+   "test_gated_tok_s": [
+    9.0,
+    1.39,
+    20.76
+   ],
+   "raw_tok_s": [
+    153.39,
+    130.01,
+    178.62
+   ],
+   "aggregate_tok_s": {
+    "iqr": [
+     144.74,
+     165.67
+    ],
+    "median": 155.91,
+    "n": 12
+   },
+   "iqr_over_median": 0.134,
+   "capped_tasks": 0,
+   "local_requests": 35,
+   "cap_hits": 8,
+   "cap_hit_rate": 0.229,
+   "gated_submissions": 22,
+   "edit_failures": 11,
+   "edit_failure_rate": 0.5,
+   "edit_failure_kinds": {
+    "no block applied": 5,
+    "SEARCH text not found": 5,
+    "missing path": 1
+   },
+   "first_response_failures": {
+    "truncated": 7,
+    "parse": 4,
+    "none": 12
+   },
+   "rule4_output_caps_ok": false,
+   "rule5_noise_ok": true
+  }
+ },
+ "format_compliance": {
+  "l1_edit_failure_rate": 0.5,
+  "threshold": 0.2,
+  "ok": false
+ },
+ "choice": {
+  "by_tok_s": 2,
+  "solving_one_more": [],
+  "n": 2
+ }
+}

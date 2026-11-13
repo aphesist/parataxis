@@ -1,0 +1,129 @@
+{
+ "arms": [
+  "La",
+  "La-shadow",
+  "La-first"
+ ],
+ "blame_rules": {
+  "1": 12,
+  "3": 4
+ },
+ "capped": {
+  "L1": 0,
+  "La": 0,
+  "Lb": 0
+ },
+ "coordination": {
+  "La": {
+   "ignored_correction": 1,
+   "interface_mismatch": 4,
+   "scope_violation": 1,
+   "unattributable_failure": 4,
+   "wasted_lane": 5
+  }
+ },
+ "coordination_La_vs_Lb": null,
+ "cost": {
+  "planner_usd": 0.0
+ },
+ "lane_counts": {
+  "1": 2,
+  "2": 8,
+  "3": 1,
+  "4": 1
+ },
+ "log": "logs/La4.jsonl",
+ "primary": {
+  "a": "La",
+  "a_only": 0,
+  "a_solved": 4,
+  "b": "La-shadow",
+  "b_only": 1,
+  "b_solved": 5,
+  "ci_points": [
+   -25.0,
+   0.0
+  ],
+  "diff_points": -8.3,
+  "n": 12,
+  "p_mcnemar": 1.0
+ },
+ "secondary": {
+  "La_vs_L1": null,
+  "Lb_vs_La": null,
+  "local_La_vs_api_La": null
+ },
+ "seed": 20261113,
+ "solve_rates": {
+  "La": {
+   "n": 12,
+   "solved": 4,
+   "wilson95": [
+    0.138,
+    0.609
+   ]
+  },
+  "La-first": {
+   "n": 12,
+   "solved": 4,
+   "wilson95": [
+    0.138,
+    0.609
+   ]
+  },
+  "La-shadow": {
+   "n": 12,
+   "solved": 5,
+   "wilson95": [
+    0.193,
+    0.68
+   ]
+  }
+ },
+ "tasks": 12,
+ "throughput": {
+  "La": {
+   "aggregate_tok_s": {
+    "iqr": [
+     141.22,
+     183.04
+    ],
+    "median": 170.16,
+    "n": 12
+   },
+   "per_request_tok_s": {
+    "iqr": [
+     97.61,
+     163.56
+    ],
+    "median": 124.36,
+    "n": 42
+   },
+   "tail_share": {
+    "iqr": [
+     0.1,
+     0.83
+    ],
+    "median": 0.67,
+    "n": 12
+   }
+  }
+ },
+ "tok_s": {
+  "La": {
+   "raw_tok_s": [
+    115.78,
+    92.36,
+    131.89
+   ],
+   "tasks": 12,
+   "test_gated_tok_s": [
+    9.66,
+    1.07,
+    25.78
+   ],
+   "wall_s_total": 778.6
+  }
+ },
+ "token_count": "local tokenizer (vLLM /tokenize)"
+}

@@ -1,0 +1,54 @@
+{
+ "commit": "dad9da4b415395911f3a7403a45b6d9dc7e8e7f6",
+ "contraprova_pin": "403caf23e1f9321e0244f3805b00a177476df4e0",
+ "dirty": false,
+ "files": {
+  "scripts/analyze_local.py": "bfc20ba31a18bc6a22b32d15ccdb09ff25a004483a0ba10efa6e3fd4f425c22d",
+  "scripts/calib_summary.py": "cf99805498c630558b1057978428e4516831ac0517a1535604cb657b85e0fc0b",
+  "scripts/calibrate.sh": "19ab26378fdba5fa482510fb95e8b743272cd600dc1e3c84d39420d20d348175",
+  "scripts/day1.sh": "55752a5df55066028763abe42530e36751f8a1a43acf709ab6c2fb4cd93acecc",
+  "scripts/fit_symbol_lanes.py": "635233bda91d48a33db252f2145653287a7936751a64cc916c403c2509172818",
+  "scripts/freeze_hashes.py": "d34587d2e3101becc59922d37b7a82a0bc46a2d7dc29099ba04dd48eaacd5788",
+  "src/parataxis/__init__.py": "18e9502127f2e7e55112c87b390e909583a79e07703b5ea56c1f5b2ee6457fc8",
+  "src/parataxis/arms.py": "b2b44e2d9a3c63ee2822fa2a0e52af7db0133652be17fd574f4914b31860f3f1",
+  "src/parataxis/fake_runpod.py": "4620289eb18ae7af29d147a06ed0fe7c670d49c6ecd5d650d3abf38a9ce45d1b",
+  "src/parataxis/fake_vllm.py": "2af1433239f8c3c77b2ef8deeedcec3e7453e8beb16f13e71a7807e5b9a421cb",
+  "src/parataxis/lanes.py": "73512cf34ea966b2d02e63ea5731605c964d863cb29b384b6c993fc3706062fe",
+  "src/parataxis/lanes_detect.py": "553d1adf76c5e1d952895c997e72b4a4f62ccf96509191ace0b0b2f06ededc94",
+  "src/parataxis/local.py": "b7b1ff3b1409a004b6d240a9f6a1fbb91b8871715a8b81e213a5df8431286ca8",
+  "src/parataxis/pod.py": "97363428d5d2e43c737dd9c5311eae09d432f0f94c11bff1c14f4e0e250b4038",
+  "src/parataxis/run.py": "9ea7ebb17f977628dd4bf5927b39915310689684315666cfc4e2134ea3c7220d",
+  "src/parataxis/smoke.py": "84d6592ead353284776b69ea84ea6c47f89094ec61e98c68e0771e14592fbdc2",
+  "src/parataxis/symbols.py": "fe5363ac86dbc83881e1b20d7f3db28b24eb90c1e3f3ee0ecfd036675f82e53f"
+ },
+ "prompts": {
+  "contraprova.harness.swepro_arms": {
+   "EDIT_FORMAT": "359595daeeda8b577b1512bb6fb6383844dba8f706502d2479b7e8c16b0d5abc",
+   "PRO_BRIEF_REQUEST": "4d499eddd5b1d11cf73402c99c22e3d13efef9043b4a9e4be8ada4f1b51dbf4b",
+   "PRO_LEAD_CONTEXT": "ab293d040399bbb3e31d4e7c56d5ee1618bf787d14240906567d50afee204109",
+   "PRO_LEAD_SYSTEM": "46651c7103dfd33d08ad813958f320b3f4071a7c380e393a4da999816d143fe6",
+   "PRO_REVIEW_REQUEST": "7e2f5ece6224a35329b0300edaff2baca0d5d6b958ad9b37c1825ab1d6532932",
+   "PRO_T2_SYSTEM": "56df955211dc49a773c48ff2dca3b15e2ff81834722cd1dd3cc8cf5ed8f53286",
+   "PRO_T2_TASK": "08eed1d961b2d37b23413d10955d9d1befe5e4585e52e2abdf1419f01360aa19",
+   "PRO_WORKER_RETRY": "287b53cea296c2e6aa5ce6a73dd9f5cfd123252d5b8f3042f7f3f85af86cb5b7",
+   "PRO_WORKER_SYSTEM": "efe1c58dccf9e6788d0b141087d4be1082a392fb1e412d83b3491bd67b29e950",
+   "PRO_WORKER_TASK": "23006ae67d4896103cffb598d33447733bf2246fc463af31f02aaf6ef3fe0f88",
+   "REPAIR_ERRORS": "f22743ca80129af3f0fbb027c16ffe60fae8fdf897f855503f56f3588e1a5a3b",
+   "REPAIR_TRUNCATED": "6e525017abe4b877466443c12f275504a4da83bacc1620bcbb0ea2afea515577"
+  },
+  "parataxis.lanes": {
+   "BOARD_LANE": "423ea72450eed2c8170ba3b22adfaa922138db37057ed99d884ec9c203bd8c30",
+   "BOARD_SHARED": "107f32585af038699b5b917aa320112bcd08d47dfa378dd17f4ba1f4b0920ea6",
+   "EDIT_FORMAT": "359595daeeda8b577b1512bb6fb6383844dba8f706502d2479b7e8c16b0d5abc",
+   "LANE_RETRY": "87542089765bce1fc0d0c081f21a65e0fa751b93094b5046d5a097f7717809e4",
+   "LANE_SYSTEM": "835de45f1bf762c25b545d14135ab6daea5c68ef1220292e1adfe09bcc9e35ed",
+   "LANE_TASK": "15f0891f32517c991e0c16fb51c9634c1ea881b76a83f6a8b61c4421ba5e926f",
+   "PLAN_REPAIR": "73d594b6203c58540169cd11dd6e3be94ec802701ac7e19a7c40b3ed5a53fc27",
+   "PLAN_REQUEST": "e2c2e0e0f6cfa99bbbe84e771ace0125328982f993ac512b83566d4b716d123d",
+   "PLAN_SCHEMA": "5e1847a8ef740d8a4eb53213bfdac79d0688ffa2c09cab613cb33439af2f67e7",
+   "PLAN_SCHEMA_UNITS": "cce63c55f133239f1a67737a062f5e5e8ef7b66d4c5c48937a912bdfbd67cd36",
+   "PLAN_UNITS_RULES": "d2802a6d02935db3fa09a2e0de81e614c3a91ac0c90ca2d00036967cd3a003b8",
+   "UNITS_NOTE": "385e1e6f248b3c63a628092a5055caf9a8f11c52a7f7f8ee01727d2edaaea2c3"
+  }
+ }
+}

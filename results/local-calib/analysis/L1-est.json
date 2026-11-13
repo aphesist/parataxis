@@ -1,0 +1,85 @@
+{
+ "arms": [
+  "L1"
+ ],
+ "blame_rules": {},
+ "capped": {
+  "L1": 0,
+  "La": 0,
+  "Lb": 0
+ },
+ "coordination": {},
+ "coordination_La_vs_Lb": null,
+ "cost": {
+  "planner_usd": 0
+ },
+ "lane_counts": {},
+ "log": [
+  "results/local-calib/logs/L1.jsonl",
+  "results/local-calib/logs/L1b.jsonl",
+  "results/local-calib/logs/L1c.jsonl"
+ ],
+ "primary": null,
+ "secondary": {
+  "La_vs_L1": null,
+  "Lb_vs_La": null,
+  "local_La_vs_api_La": null
+ },
+ "seed": 20261113,
+ "solve_rates": {
+  "L1": {
+   "n": 12,
+   "solved": 4,
+   "wilson95": [
+    0.138,
+    0.609
+   ]
+  }
+ },
+ "tasks": 12,
+ "throughput": {
+  "L1": {
+   "aggregate_tok_s": {
+    "iqr": [
+     144.74,
+     165.67
+    ],
+    "median": 155.91,
+    "n": 12
+   },
+   "per_request_tok_s": {
+    "iqr": [
+     120.55,
+     168.01
+    ],
+    "median": 155.5,
+    "n": 35
+   },
+   "tail_share": {
+    "iqr": [
+     0.0,
+     0.0
+    ],
+    "median": 0.0,
+    "n": 12
+   }
+  }
+ },
+ "tok_s": {
+  "L1": {
+   "raw_tok_s": [
+    153.39,
+    130.01,
+    178.62
+   ],
+   "tasks": 12,
+   "test_gated_tok_s": [
+    10.93,
+    1.59,
+    25.63
+   ],
+   "wall_s_total": 761.9
+  }
+ },
+ "token_count": "estimated (characters / 3)"
+}
