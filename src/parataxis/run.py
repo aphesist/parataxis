@@ -20,6 +20,8 @@ import sys
 
 import parataxis.lanes as lanes  # noqa: F401  (must precede the harness import)
 
+LOCAL_PLAN_OUT = 1199  # measured: median planner output tokens in results/swepro-lanes (main 37 + probe 12)
+
 
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
@@ -33,6 +35,10 @@ def main(argv: list[str] | None = None) -> int:
         import parataxis.local  # noqa: F401  (registers the local model's $0 price)
         from contraprova.harness import swepro_run
 
+        # the lane pre-flight's expected planner output: the API study's measured median over 49 Opus
+        # plans (1,199 tokens; p90 2,428) instead of the plan's assumed 4,000. The budget guard still caps
+        # the real spend before every request.
+        swepro_run.LaneAssumptions = functools.partial(lanes.LaneAssumptions, plan_out=LOCAL_PLAN_OUT)
         swepro_run.LaneConfig = functools.partial(lanes.LaneConfig, ladder=lanes.LOCAL_LADDER,
                                                   lane_max_tokens=lanes.LOCAL_LANE_MAX_TOKENS,
                                                   concurrency=concurrency, symbol_lanes=True,
