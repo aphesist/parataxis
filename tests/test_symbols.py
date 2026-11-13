@@ -280,3 +280,14 @@ def test_every_insertion_point_has_exactly_one_owner():
     owners = [names for names in (["<module>"], ["a"], ["b"])
               if restrict_to_spans(THREE, new, spans_for("m.py", THREE, names))[0] == new]
     assert owners == [["a"]]  # the blank lines between a and b belong to a, the unit above
+
+
+def test_blank_lines_inside_a_unit_belong_to_it_and_one_change_from_two_lanes_applies_once():
+    from parataxis.symbols import merge_span_edits, unit_items
+
+    src = "def a():\n    x = 1\n\n    return x\n\n\ndef b():\n    return 2\n"
+    tight = src.replace("    x = 1\n\n    return x", "    x = 1\n    return x")
+    assert unit_items("m.py", src, tight) == ["a"]  # a blank-line deletion inside a: a is touched
+    both = src.replace("\n\n\ndef b", "\n\n\n\ndef b")
+    merged, clash = merge_span_edits(src, [("L1", both), ("L2", both)])
+    assert merged == both and clash == []

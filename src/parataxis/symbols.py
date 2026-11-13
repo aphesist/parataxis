@@ -493,8 +493,9 @@ def _in_scope(spans: Sequence[Span], i1: int, i2: int, base_lines: Sequence[str]
         lines = [no for no in range(i1 + 1, i2 + 1) if base_lines[no - 1].strip()]
         if lines:
             return all(any(s.contains(no) for s in spans) for no in lines)
-        if all_spans is None:  # only blank lines: in scope next to an owned span
-            return any(s.start - 1 <= i2 and i1 <= s.end for s in spans)
+        # only blank lines replaced or deleted: in scope next to an owned span (two lanes may both
+        # do it; the merge applies the same change once)
+        return any(s.start - 1 <= i2 and i1 <= s.end for s in spans)
     at = i1  # insertion after base line `at` (1-based count of lines before it)
     if all_spans is not None:  # the file's spans are known: exactly one span owns each insertion point
         owner = insertion_owner(all_spans, at, base_lines)
@@ -531,8 +532,11 @@ def restrict_to_spans(base: str, new: str, spans: Sequence[Span], *,
 def merge_span_edits(base: str, versions: Sequence[tuple[str, str]]) -> tuple[str, list[tuple[str, str, int]]]:
     """Merge several lanes' versions of one file, each confined to its own spans of the same base.
     ``versions`` is (lane id, text) in plan order. Changes are applied to the base in line order;
-    insertions at the same point keep plan order. Two changes whose base ranges overlap are a
-    conflict: the earlier lane's change is kept and (later lane, earlier lane, base line) reported."""
+    insertions at the same point keep plan order. The same change from two lanes is applied once, and
+    a blank-only insertion where another lane's change already added blank lines is dropped (each
+    lane's diff aligns separating blank lines its own way). Two changes whose base ranges overlap
+    are a conflict: the earlier lane's change is kept and (later lane, earlier lane, base line)
+    reported."""
     a = base.split("\n")
     changes: list[tuple[int, int, int, str, list[str]]] = []  # (i1, i2, lane order, lane, lines)
     for order, (lane, text) in enumerate(versions):
@@ -542,7 +546,18 @@ def merge_span_edits(base: str, versions: Sequence[tuple[str, str]]) -> tuple[st
     out: list[str] = []
     conflicts: list[tuple[str, str, int]] = []
     pos, last_end, last_lane = 0, -1, None
+    seen: set[tuple[int, int, tuple[str, ...]]] = set()
+    blank_at: set[int] = set()  # base points where an earlier change already added blank lines
     for i1, i2, _, lane, lines in changes:
+        key = (i1, i2, tuple(lines))
+        blank_insert = i1 == i2 and lines and not any(x.strip() for x in lines)
+        if key in seen or (blank_insert and i1 in blank_at):
+            continue  # the same change from two lanes (often a separating blank line): applied once
+        seen.add(key)
+        if lines and not lines[-1].strip():
+            blank_at.add(i2)
+        if lines and not lines[0].strip():
+            blank_at.add(i1)
         overlap = i1 < pos or (i2 > i1 and i1 < last_end)
         if overlap:
             conflicts.append((lane, last_lane or "", i1 + 1))
@@ -666,8 +681,11 @@ def unit_items(path: str, base: str, new: str, *, split_class_lines: int = 120) 
             inserts.append(i1)
         elif tag in ("replace", "delete"):
             solid = [no for no in range(i1 + 1, i2 + 1) if base_lines[no - 1].strip()]
-            changed += solid  # blank lines go with the units next to them (the scope gate's rule)
-            if not solid and tag == "replace":
+            changed += solid  # blank lines between units go with the units next to them
+            inside = [u for u in us if u.start <= i1 + 1 and i2 <= u.end]
+            if not solid and inside:
+                changed.append(i1 + 1)  # blank lines inside one unit belong to that unit
+            elif not solid and tag == "replace":
                 inserts.append(i1)  # new code written over blank lines is an insertion there
     hit: dict[str, int] = {}
     for line in changed:
