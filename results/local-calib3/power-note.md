@@ -2,13 +2,13 @@
 
 > if the main run behaves like the probe calibration, can the primary (La vs La-shadow, exact McNemar, two-sided α = 0.05) detect a difference on 37 tasks?
 
-> **status:** no. at the calibration's rates the main run expects about 4 discordant tasks and has under 2% power. at least 6 discordant tasks, all in La's favour, are needed for any p < 0.05. 80% power needs La to win on about 20% of tasks and lose on almost none (the api study had 22%: 8 to 0).
+> **status:** no. at the calibration's rates the main run expects about 4 discordant tasks and has under 1% power. at least 6 discordant tasks, all in La's favour, are needed for any p < 0.05. 80% power needs La to win on about 20% of tasks and lose on almost none (the api study had 22%: 8 to 0).
 
 ## the rates
 
 | source | task runs | La only | La-shadow only | both solved |
 |---|---|---|---|---|
-| wide fan-out (k 6–8): La2, La2b, La4 (7 tasks) | 27 | 2 | 1 | 2 |
+| wide fan-out (k 6–8): La2, La2b, La4 (10 tasks), La8 | 40 | 2 | 2 | 2 |
 | narrow plans (k 1–4): first calibration La8, La4, La2 | 36 | 2 | 2 | 10 |
 | api study main (haiku lanes, opus planner) | 37 | 8 | 0 | 28 |
 
@@ -18,7 +18,7 @@ computed exactly over the multinomial of the discordant counts:
 
 | assumed rates (La only / shadow only) | expected discordant | power |
 |---|---|---|
-| wide: 7.4% / 3.7% | 4.1 | 0.017 |
+| wide: 5.0% / 5.0% | 3.7 | 0.002 |
 | narrow: 5.6% / 5.6% | 4.1 | 0.003 |
 | 15% / 0% | 5.5 | 0.49 |
 | 20% / 0% | 7.4 | 0.78 |
