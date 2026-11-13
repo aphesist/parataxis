@@ -161,6 +161,11 @@ the prefix-cache counter is recorded (unverified if vllm does not export it).
   - La2's aggregate-throughput iqr is 44% of its median, which triggers stop rule 5 (repeats are added).
 
   n is re-chosen by the same rule after the repeat calibration in b.6.
+- **after the repeat calibration** ([`results/local-calib3`](results/local-calib3/README.md); 10 tasks, k of 6–8): n = 2 is the only n with a complete pass.
+  - **runs:** La2 solved 2/10 and its repeat 1/10; test-gated tok/s 5.5 and 1.8. La4 reached 7 tasks (1 solved, about 5.2 estimated); La8 did not run.
+  - **proposed:** n = 2 by the rule, with no preemption.
+  - **caveat:** the two n = 2 runs show that test-gated tok/s varies more between runs than n is likely to change it at 10 tasks. raw throughput rose with n (180–191 tok/s at n = 2, 210 at n = 4).
+  - **for the parent:** whether to finish La4 and La8 first (about 1 pod-hour, about $0.75).
 
 ### b.3 code and prompt hashes
 
