@@ -60,7 +60,11 @@ DEFAULT_CAP_USD = 10.0
 USER_AGENT = "parataxis/0.1"
 
 # The serving configuration (pre-registered; the day-1 smoke test may fall back as PREREGISTRATION.md says).
-DEFAULT_IMAGE = "vllm/vllm-openai:v0.27.2"
+# PREREGISTRATION.md named v0.27.2; that tag does not exist on Docker Hub (checked 2026-11-13), so its
+# fallback 2 applies: the newest release tag at or above 0.27.2. v0.33.0 is built on CUDA 13.0
+# (NVIDIA_REQUIRE_CUDA=cuda>=13.0), hence MIN_CUDA for the host.
+DEFAULT_IMAGE = "vllm/vllm-openai:v0.33.0"
+MIN_CUDA = "13.0"
 DEFAULT_MODEL = "sakamakismile/Qwen3.8-27B-MTP-NVFP4"
 SERVED_NAME = "qwen3.8-27b"
 
@@ -143,6 +147,7 @@ class RunPod:
 
 
 def pod_body(name: str, key: str, *, image: str = DEFAULT_IMAGE, cloud: str = "COMMUNITY", disk_gb: int = 80,
+             min_cuda: str | None = MIN_CUDA,
              serve_args: Sequence[str] | None = None, max_seconds: int = 5400,
              extra_env: Mapping[str, str] | None = None) -> dict[str, Any]:
     if not name.startswith(NAME_PREFIX):
@@ -152,7 +157,8 @@ def pod_body(name: str, key: str, *, image: str = DEFAULT_IMAGE, cloud: str = "C
     env = {"VLLM_API_KEY": key, "HF_HUB_ENABLE_HF_TRANSFER": "1", **dict(extra_env or {})}
     # v2 create body: name, image, gpu {id, count}, cloud, disk (container disk, GB), ports, env (object),
     # entrypoint and cmd in exec form (the entrypoint overrides the image's own)
-    return {"name": name, "image": image, "gpu": {"id": GPU_5090, "count": 1}, "cloud": cloud,
+    gpu = {"id": GPU_5090, "count": 1, **({"minCudaVersion": min_cuda} if min_cuda else {})}
+    return {"name": name, "image": image, "gpu": gpu, "cloud": cloud,
             "disk": int(disk_gb), "ports": [f"{PORT}/http"], "env": env, "entrypoint": ["bash", "-lc"],
             "cmd": [start_script(serve_args or vllm_args(), max_seconds)]}
 

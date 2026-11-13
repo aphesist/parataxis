@@ -29,7 +29,8 @@ def test_create_writes_a_private_key_and_never_uses_stop(dirs):
         key = kp.read_text()
         assert len(key) >= 40 and stat.S_IMODE(os.stat(kp).st_mode) == 0o600
         body = rp_fake.calls[0][2]
-        assert body["gpu"] == {"id": pod.GPU_5090, "count": 1} and body["ports"] == ["8000/http"]
+        assert body["gpu"] == {"id": pod.GPU_5090, "count": 1, "minCudaVersion": "13.0"}
+        assert body["ports"] == ["8000/http"] and body["image"] == "vllm/vllm-openai:v0.33.0"
         assert body["cloud"] == "COMMUNITY" and body["entrypoint"] == ["bash", "-lc"]
         assert body["env"]["VLLM_API_KEY"] == key
         assert key not in " ".join(body["cmd"])  # the key is never on a command line
