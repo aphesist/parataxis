@@ -40,7 +40,7 @@ contraprova's pre-registered contract lanes study, on 37 fresh multi-file swe-be
 ## pre-registration
 
 - **the starting evidence was pre-registered.** contraprova's [PREREG.md](results/swepro-lanes/PREREG.md) was written and committed before any paid request of the main run, on 2026-11-12 (contraprova commit 1ed672e); its probe has its own ([PREREG-probe.md](results/swepro-lanes/PREREG-probe.md)). the hashes it freezes refer to contraprova's paths, not to this repository's copy of the lane layer ([provenance](results/swepro-lanes/PROVENANCE.md)).
-- **the local track is not pre-registered yet.** its plan commits a pre-registration before the main run ([docs/local-plan.md](docs/local-plan.md), step 4).
+- **the local track's protocol is pre-registered** ([PREREGISTRATION.md](PREREGISTRATION.md), part a), committed before any gpu rental or paid request of the local track. part b, the freeze of code and prompt hashes, n and the serving configuration, is appended before the main run, after the day-1 smoke test and the calibration on the probe tasks.
 
 ## honesty table
 
