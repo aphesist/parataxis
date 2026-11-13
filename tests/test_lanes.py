@@ -170,7 +170,8 @@ def test_ladder_is_haiku_repair_sonnet_opus_and_never_fable():
 
 
 @pytest.mark.parametrize("kw", [{"planner_model": FABLE}, {"ladder": (("haiku", HAIKU, "medium"), ("fable", FABLE, "low"))},
-                                {"ladder": ()}, {"max_lanes": 5}])
+                                {"ladder": ()}, {"max_lanes": 9}, {"max_lanes": 0},
+                                {"ladder": (("other", "gpt-x", None),)}])
 def test_lane_config_refuses_fable_and_bad_settings(kw):
     with pytest.raises(ValueError):
         LaneConfig(**kw)
@@ -682,3 +683,12 @@ def test_cli_select_dry_run_preflight_and_report(tmp_path, data_dir, capsys):
     capsys.readouterr()
     assert cp_main(["report", "--lanes", str(log)]) == 0
     assert "La vs La-shadow" in capsys.readouterr().out
+
+
+def test_local_ladder_is_accepted_up_to_eight_lanes():
+    from parataxis.lanes import LOCAL_LADDER, LOCAL_MODEL, is_local
+
+    cfg = LaneConfig(ladder=LOCAL_LADDER, max_lanes=8)
+    assert [m for _, m, _ in cfg.ladder] == [LOCAL_MODEL, LOCAL_MODEL]
+    assert is_local(LOCAL_MODEL) and not is_local(HAIKU)
+    assert cfg.planner_model == OPUS

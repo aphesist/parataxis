@@ -5,7 +5,7 @@ The pipeline (contraprova docs/lanes-plan.md section 2.1; the owner's design whe
 1. **Plan.** One Opus 5.5 request at low effort (fixed, pre-registered) sees the orchestrator's
    context (``ProHarness.lead_context``: statement, requirements, interface, outline, visible test
    names; never a file body) plus the list of files to assign, and returns one JSON lane plan: 1 to
-   ``max_lanes`` lanes (cap 4), each with its files (a partition of the task's files), goal,
+   ``max_lanes`` lanes (cap 4 in the API study, up to 8 locally), each with its files (a partition of the task's files), goal,
    symbols, the interfaces it provides and uses, and its visible tests; and the cross-lane
    ``interfaces`` with frozen signatures. :func:`parse_plan` validates it strictly (every file in
    exactly one lane, no test file, 1 <= k <= cap, each lane prompt within the token bound). An
@@ -97,7 +97,12 @@ SONNET_ARM = "La-sonnet"
 DERIVED_ARMS: tuple[str, ...] = (SHADOW_ARM, FIRST_ARM, SONNET_ARM)
 LANE_MODELS = frozenset({HAIKU, SONNET, OPUS})
 T0_INTERFACES = "T0.interfaces"
-MAX_LANES = 4
+MAX_LANES = 4  # the API study's cap and LaneConfig's default
+MAX_LANES_CAP = 8  # the most lanes any configuration may allow (the local track)
+# Local models (served by vLLM on the rented GPU) are named "local:<served model>". They may run lane
+# steps; they cost no API dollars (GPU time is accounted separately, see parataxis.local).
+LOCAL_PREFIX = "local:"
+LOCAL_MODEL = LOCAL_PREFIX + "qwen3.8-27b"
 LANE_OUTLINE_MAX_CHARS = 24_000
 LANE_PROMPT_MAX_TOKENS = 90_000
 # Per-lane ladder: (step, model, effort). Attempt n of a lane runs step n-1.
@@ -107,14 +112,27 @@ DEFAULT_LADDER: tuple[tuple[str, str, str | None], ...] = (
     ("sonnet", SONNET, "medium"),
     ("opus", OPUS, "low"),
 )
+# The local track's ladder: the local lane, then one local repair with the gate feedback; no cloud
+# escalation, so the headline result stays local-only (owner's decision). Thinking off: no effort.
+LOCAL_LADDER: tuple[tuple[str, str, str | None], ...] = (
+    ("local", LOCAL_MODEL, None),
+    ("local-repair", LOCAL_MODEL, None),
+)
+LOCAL_LANE_MAX_TOKENS = 8_000
+
+
+def is_local(model: str) -> bool:
+    return model.startswith(LOCAL_PREFIX)
+
+
 _LANE_ID = re.compile(r"^[A-Za-z0-9_-]{1,16}$")
 _REQUEST = re.compile(r"^\s*INTERFACE REQUEST:\s*([^:\n]+?)\s*:\s*(.+?)\s*$", re.M)
 
 
 @dataclass(frozen=True)
 class LaneConfig:
-    """Arm La's fixed settings (pre-registered). Any model outside ``LANE_MODELS`` (Fable 5.2 above
-    all) is refused for the planner, the lanes and every escalation tier."""
+    """Arm La's fixed settings (pre-registered). Any model outside ``LANE_MODELS`` and the local
+    models (Fable 5.2 above all) is refused for the planner, the lanes and every escalation tier."""
 
     planner_model: str = OPUS
     planner_effort: str | None = "low"
@@ -126,21 +144,27 @@ class LaneConfig:
     plan_repair: bool = True
     lane_prompt_max_tokens: int = LANE_PROMPT_MAX_TOKENS
     outline_max_chars: int = LANE_OUTLINE_MAX_CHARS
+    # Lanes whose model is local are requested concurrently, at most this many at once (the local
+    # track's calibrated N); 1 keeps the API study's one-after-another order. See _prefetch_round.
+    concurrency: int = 1
 
     def __post_init__(self) -> None:
         models = [self.planner_model, *(m for _, m, _ in self.ladder)]
-        bad = sorted({m for m in models if m not in LANE_MODELS})
+        bad = sorted({m for m in models if m not in LANE_MODELS and not is_local(m)})
         if bad or FABLE in models:
-            raise ValueError(f"arm La runs only on {sorted(LANE_MODELS)}; refused: {bad or [FABLE]}")
-        if not self.ladder or not 1 <= self.max_lanes <= MAX_LANES:
-            raise ValueError("arm La needs a non-empty ladder and 1 <= max_lanes <= 4")
+            raise ValueError(f"arm La runs only on {sorted(LANE_MODELS)} or local models; refused: {bad or [FABLE]}")
+        if self.concurrency < 1:
+            raise ValueError("concurrency must be at least 1")
+        if not self.ladder or not 1 <= self.max_lanes <= MAX_LANES_CAP:
+            raise ValueError(f"arm La needs a non-empty ladder and 1 <= max_lanes <= {MAX_LANES_CAP}")
 
     def to_dict(self) -> dict[str, Any]:
         return {"planner_model": self.planner_model, "planner_effort": self.planner_effort,
                 "planner_max_tokens": self.planner_max_tokens, "max_lanes": self.max_lanes,
                 "ladder": [list(x) for x in self.ladder], "lane_max_tokens": self.lane_max_tokens,
                 "max_rounds": self.max_rounds, "plan_repair": self.plan_repair,
-                "lane_prompt_max_tokens": self.lane_prompt_max_tokens}
+                "lane_prompt_max_tokens": self.lane_prompt_max_tokens,
+                **({"concurrency": self.concurrency} if self.concurrency != 1 else {})}
 
 
 # ------------------------------------------------------------------ prompts
@@ -945,11 +969,16 @@ def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfi
                  contract={"allowed": list(lc.allowed), "protected": list(lc.protected), "symbols": list(lc.symbols)})
         states[ln.lane_id] = _LaneState(ln, ltid, lane_prompt(ex, ts, plan, ln, cfg.outline_max_chars))
 
-    def run_lane(st: _LaneState, rnd: int) -> None:
-        st.step += 1
-        step, model, effort = cfg.ladder[st.step]
+    def next_request(st: _LaneState) -> tuple[str, str, str | None, str]:
+        """(step, model, effort, prompt) of the lane's next request; run_lane and the prefetch use it."""
+        step, model, effort = cfg.ladder[st.step + 1]
         prompt = st.base_prompt if st.sub is None else lane_retry_prompt(
             st.base_prompt, ex, st.lane, st.sub.files, st.last_feedback, h.config.feedback_chars)
+        return step, model, effort, prompt
+
+    def run_lane(st: _LaneState, rnd: int) -> None:
+        step, model, effort, prompt = next_request(st)
+        st.step += 1
         sub = h._work(LANE_ARM, st.task_id, ex, model, prompt, st.step + 1, effort, scope=lane_scope(st.lane),
                       max_tokens=cfg.lane_max_tokens, system=LANE_SYSTEM,
                       extra={"plan_id": plan_id, "lane_id": st.lane.lane_id, "tier": step, "round": rnd},
@@ -991,8 +1020,12 @@ def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfi
     final = None
     while True:
         to_run = [states[i] for i in (escalated or tuple(states))]
-        for st in to_run:
-            run_lane(st, rnd)
+        restore = _prefetch_round(h, cfg, [(st.task_id, st.lane.lane_id, *next_request(st)) for st in to_run], rnd)
+        try:
+            for st in to_run:
+                run_lane(st, rnd)
+        finally:
+            restore()
         for st in to_run:
             _emit_clashes(h, tid, plan_id, lane_round_clashes(st.lane.lane_id, st.sub, st.__dict__.pop("requests", [])),
                           rnd, "governed")
@@ -1249,9 +1282,11 @@ def lane_preflight(h, ex: ProExercise, ts: ProTestSplit, count_tokens, cfg: Lane
         return (n_in * inp + n_out * outp) / PER_MTOK
 
     plan = by_file_plan(ex, k)
+    lane_model = cfg.ladder[0][1]  # Haiku in the API study; the local model on the local track
+    ladder_models = {m for _, m, _ in cfg.ladder}
     p_in = int(count_tokens(model=cfg.planner_model, system=h.lead_system,
                             messages=[Message("user", _planner_context(h, ex, ts, cfg.max_lanes))]))
-    lane_in = tuple(int(count_tokens(model=HAIKU, system=LANE_SYSTEM,
+    lane_in = tuple(int(count_tokens(model=lane_model, system=LANE_SYSTEM,
                                      messages=[Message("user", lane_prompt(ex, ts, plan, ln, cfg.outline_max_chars))]))
                     for ln in plan.lanes)
     kk = len(lane_in)
@@ -1263,11 +1298,13 @@ def lane_preflight(h, ex: ProExercise, ts: ProTestSplit, count_tokens, cfg: Lane
     nb = a.p_block * a.blamed
     parts = {
         "planner": usd(cfg.planner_model, p_in, a.plan_out),
-        "lanes": sum(usd(HAIKU, n, h_out) for n in lane_in),
-        "edit_repairs": sum(a.edit_repair_rate * usd(HAIKU, n + h_out, a.edit_repair_out) for n in lane_in),
-        "haiku_repair_round": nb * usd(HAIKU, mean_in + a.retry_extra, h_out),
-        "sonnet": nb * usd(SONNET, mean_in + a.retry_extra, o_out * a.sonnet_factor) * a.escalation_repair,
-        "opus": nb * a.q_opus * usd(OPUS, mean_in + a.retry_extra + 1000, o_out) * a.escalation_repair,
+        "lanes": sum(usd(lane_model, n, h_out) for n in lane_in),
+        "edit_repairs": sum(a.edit_repair_rate * usd(lane_model, n + h_out, a.edit_repair_out) for n in lane_in),
+        "haiku_repair_round": nb * usd(lane_model, mean_in + a.retry_extra, h_out),
+        "sonnet": (nb * usd(SONNET, mean_in + a.retry_extra, o_out * a.sonnet_factor) * a.escalation_repair
+                   if SONNET in ladder_models else 0.0),
+        "opus": (nb * a.q_opus * usd(OPUS, mean_in + a.retry_extra + 1000, o_out) * a.escalation_repair
+                 if OPUS in ladder_models else 0.0),
     }
     mt, pmt = cfg.lane_max_tokens, cfg.planner_max_tokens
     worst = usd(cfg.planner_model, p_in, pmt) + usd(cfg.planner_model, p_in + pmt, pmt)
@@ -1277,6 +1314,65 @@ def lane_preflight(h, ex: ProExercise, ts: ProTestSplit, count_tokens, cfg: Lane
             worst += usd(model, n2, mt) + usd(model, n2 + mt, mt)
     return LanePreflightRow(ex.id, kk, p_in, lane_in, lines, sum(parts.values()), worst,
                             {key: round(v, 6) for key, v in parts.items()})
+
+
+def _req_key(model: str, system: str, user: str, max_tokens: int) -> str:
+    return sha256_text("\x1f".join((model, system, str(max_tokens), user)))
+
+
+class _Prefetched:
+    """The harness's client during one lane round: a request whose answer was prefetched gets it
+    (each answer is used once); anything else, an edit-repair turn included, goes to the real client."""
+
+    def __init__(self, inner: Any, done: dict[str, Any]):
+        self.inner = inner
+        self.done = done
+
+    def complete(self, *, model: str, system: str, messages: Sequence[Message], max_tokens: int,
+                 effort: str | None = None, tags: Mapping[str, Any] | None = None):
+        if len(messages) == 1:
+            got = self.done.pop(_req_key(model, system, messages[0].content, max_tokens), None)
+            if got is not None:
+                return got
+        return self.inner.complete(model=model, system=system, messages=messages, max_tokens=max_tokens,
+                                   effort=effort, tags=tags)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.inner, name)
+
+
+def _prefetch_round(h, cfg: LaneConfig, reqs: Sequence[tuple[str, str, str, str, str | None, str]], rnd: int):
+    """Send a round's local lane requests concurrently (at most ``cfg.concurrency`` at once), then let
+    the round run as before: each lane's ``_work`` receives its prefetched answer in plan order, so the
+    single writer still emits every event in the same order. Only local models are prefetched: they
+    cost no dollars, so the budget guard (checked again by ``_work``) has nothing to stop. A request
+    that fails here is simply sent again by ``_work``. Returns a function that restores the client."""
+    local = [r for r in reqs if is_local(r[3])]
+    if cfg.concurrency <= 1 or len(local) < 2:
+        return lambda: None
+    from concurrent.futures import ThreadPoolExecutor
+
+    inner = h.client
+
+    def one(r):
+        task_id, lane_id, step, model, effort, prompt = r
+        try:
+            c = inner.complete(model=model, system=LANE_SYSTEM, messages=[Message("user", prompt)],
+                               max_tokens=cfg.lane_max_tokens, effort=effort,
+                               tags={"arm": LANE_ARM, "role": "worker", "task_id": task_id, "lane_id": lane_id,
+                                     "tier": step, "round": rnd, "concurrent": len(local)})
+        except Exception:  # noqa: BLE001 - the serial path retries and reports it
+            return None
+        return _req_key(model, LANE_SYSTEM, prompt, cfg.lane_max_tokens), c
+
+    with ThreadPoolExecutor(max_workers=min(cfg.concurrency, len(local))) as pool:
+        done = dict(x for x in pool.map(one, local) if x is not None)
+    h.client = _Prefetched(inner, done)
+
+    def restore() -> None:
+        h.client = inner
+
+    return restore
 
 
 def _route_contraprova() -> None:
