@@ -1,0 +1,24 @@
+{
+ "lanes": {
+  "aggregate_tok_s": 242.4,
+  "failed": 0,
+  "n": 8,
+  "pass": true,
+  "per_stream_tok_s": 41.8,
+  "preemptions": 0.0,
+  "prompt_tokens": 21697,
+  "wall_s": 33.79
+ },
+ "pass": true,
+ "single": {
+  "aggregate_tok_s": 44.7,
+  "failed": 0,
+  "n": 1,
+  "pass": true,
+  "per_stream_tok_s": 44.7,
+  "preemptions": 0.0,
+  "prompt_tokens": 79381,
+  "wall_s": 22.88
+ },
+ "tokens_per_filler": 22.12
+}
