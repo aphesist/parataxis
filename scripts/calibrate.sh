@@ -89,7 +89,9 @@ for p in $PASSES; do
   [ "$p" = La4 ] || [ "$p" = La2 ] && replay="$RUNS/La8.jsonl"
   if [ -n "$REPLAY_LOG" ] && [ "$p" != L1 ]; then replay="$REPLAY_LOG"; fi
   echo "pass $p: start $(date -u +%H:%M:%S)"
-  PARATAXIS_PLAN_REPLAY="$replay" pod exec --pod "$pid" -- python -m parataxis.run "${COMMON[@]}" "${args[@]}" \
+  # replaying bought plans: nothing else may reach the Claude API (the guard sees each request's worst case)
+  only=""; [ -n "$REPLAY_LOG" ] && [ "$p" != L1 ] && only=1
+  PARATAXIS_PLAN_REPLAY="$replay" PARATAXIS_REPLAY_ONLY="$only" pod exec --pod "$pid" -- python -m parataxis.run "${COMMON[@]}" "${args[@]}" \
     --task-file "$RUNS/order-$p.txt" ${TASK_LIMIT:+--limit "$TASK_LIMIT"} --log "$RUNS/$p.jsonl" > "$RUNS/$p.out" 2>&1 \
     || echo "pass $p ended with exit $? (see $RUNS/$p.out)"
   echo "pass $p: end $(date -u +%H:%M:%S)"

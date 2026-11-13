@@ -227,6 +227,14 @@ class LocalRoleClients:
 # ------------------------------------------------------------------ plan replay
 
 REPLAY_ENV = "PARATAXIS_PLAN_REPLAY"  # comma-separated logs whose plans are replayed
+# "1": every request that is not a replayed plan is refused before it reaches the Claude API, so a run
+# that replays bought plans spends exactly $0 of planner whatever its --budget-usd says (the budget
+# guard checks each request's worst case before the replay can answer it at zero tokens)
+REPLAY_ONLY_ENV = "PARATAXIS_REPLAY_ONLY"
+
+
+class ReplayOnlyError(RuntimeError):
+    """A request that is not a replayed plan, refused under ``PARATAXIS_REPLAY_ONLY``."""
 
 
 def logged_plans(paths: Sequence[str]) -> dict[str, str]:
@@ -270,11 +278,12 @@ class PlanReplay:
     a plan is paid for once and shared, by Lb-text with La and across the calibration runs. Every
     other request, and a task with no logged plan, goes to the wrapped client."""
 
-    def __init__(self, inner: Any, paths: Sequence[str] | None = None):
+    def __init__(self, inner: Any, paths: Sequence[str] | None = None, strict: bool | None = None):
         self.inner = inner
         paths = paths if paths is not None else [p for p in os.environ.get(REPLAY_ENV, "").split(",") if p]
         self.plans = logged_plans(paths) if paths else {}
         self.replayed = 0
+        self.strict = os.environ.get(REPLAY_ONLY_ENV) == "1" if strict is None else strict
 
     def complete(self, *, model: str, system: str, messages: Sequence[Message], max_tokens: int,
                  effort: str | None = None, tags: Mapping[str, Any] | None = None) -> Completion:
@@ -286,6 +295,9 @@ class PlanReplay:
             usage = usage_payload({"input_tokens": 0, "output_tokens": 0}, model, **t)
             usage["replay"] = True
             return Completion(text=self.plans[ex_id], model=model, usage=usage, request_id=f"replay-{ex_id[:40]}")
+        if self.strict:
+            raise ReplayOnlyError(f"replay-only: no logged plan answers this {t.get('role')} request for "
+                                  f"{t.get('task_id')}; nothing was sent")
         return self.inner.complete(model=model, system=system, messages=messages, max_tokens=max_tokens,
                                    effort=effort, tags=tags)
 

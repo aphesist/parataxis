@@ -263,3 +263,41 @@ def test_plans_only_logs_the_plan_and_a_replayed_plan_costs_the_preflight_nothin
     monkeypatch.setenv("PARATAXIS_PLAN_REPLAY", str(tmp_path / "log.jsonl"))
     free = lanes.lane_preflight(h, ex, ex.test_split, count, LaneConfig(ladder=LOCAL_LADDER, symbol_lanes=True))
     assert paid.by_part["planner"] > 0 and free.by_part["planner"] == 0
+
+
+def test_a_bought_change_list_replays_strictly_and_nothing_else_is_sent(tmp_path):
+    from contraprova.interfaces import OPUS, Message
+
+    from parataxis.local import PlanReplay, ReplayOnlyError
+
+    ex = _ex()
+    exercises = {IID: ex}
+    reply = _changes({"units": ["lib/m.py::first"], "goal": "a"}, {"units": ["lib/m.py::second"], "goal": "b"},
+                     {"units": ["lib/d.py"], "goal": "d"})
+
+    class Planner(Scripted):
+        def _worker_text(self, tid, model, prompt):
+            return reply if "## Request: lane plan" in prompt else super()._worker_text(tid, model, prompt)
+
+    buy = LaneConfig(ladder=LOCAL_LADDER, max_lanes=8, symbol_lanes=True, plans_only=True)
+    h1, _, _ = harness(tmp_path, exercises, client=Planner(exercises), cfg=buy)
+    h1.run_task("La", ex, ex.test_split, "lanes-probe")
+    bought = events_of(h1, "lane.planned")[0]
+    assert bought["k"] == 3 and bought["fallback"] is None
+
+    class NoPlanner(Scripted):
+        def _worker_text(self, tid, model, prompt):
+            assert "## Request: lane plan" not in prompt
+            return super()._worker_text(tid, model, prompt)
+
+    from parataxis.local import LocalRoleClients
+
+    cloud = PlanReplay(NoPlanner(exercises), [str(tmp_path / "log.jsonl")], strict=True)
+    client = LocalRoleClients(local=NoPlanner(exercises), cloud=cloud)  # as in a run: only the API side replays
+    cfg = LaneConfig(ladder=LOCAL_LADDER, max_lanes=8, symbol_lanes=True)
+    h2, _, _ = harness(tmp_path, exercises, client=client, cfg=cfg, name="replay.jsonl")
+    h2.run_task("La", ex, ex.test_split, "lanes-probe")
+    assert events_of(h2, "lane.planned")[0]["plan_sha256"] == bought["plan_sha256"] and cloud.replayed == 1
+    with pytest.raises(ReplayOnlyError):
+        cloud.complete(model=OPUS, system="", messages=[Message("user", "hi")], max_tokens=10,
+                        tags={"role": "orchestrator", "lane_role": "planner", "task_id": "La:other"})
