@@ -100,7 +100,8 @@ class VLLMClient:
         if not self.base_url:
             raise LocalError(f"no endpoint: set {URL_ENV}")
         key = self._key or os.environ.get(self.key_env, "")
-        headers = {"content-type": "application/json", "accept": "application/json, text/event-stream"}
+        headers = {"content-type": "application/json", "accept": "application/json, text/event-stream",
+                   "user-agent": "parataxis/0.1"}  # Cloudflare (RunPod's proxy) refuses urllib's default
         if key:
             headers["authorization"] = "Bearer " + key
         req = urllib.request.Request(self.base_url + path, data=json.dumps(body).encode(), method="POST",

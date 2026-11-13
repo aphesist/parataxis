@@ -18,8 +18,8 @@ Rules this module enforces:
   or logged. RunPod's HTTP proxy is public, so the key is the endpoint's only protection. ``exec``
   hands it to a child process in ``PARATAXIS_VLLM_KEY``.
 - **The RunPod API key is never handled.** It is a network secret: the environment's proxy injects
-  it into requests to rest.runpod.io. Locally the header carries a placeholder (or ``RUNPOD_API_KEY``
-  if one is set in the environment, which is not the plan).
+  the ``Authorization`` header into requests to RunPod's API. No header is sent from here (unless
+  ``RUNPOD_API_KEY`` is set to a real value, which is not the plan).
 - **A GPU budget.** Every pod's creation and termination go into ``runs/pods/ledger.jsonl`` with its
   hourly price; ``create`` refuses if the spend so far plus ``--max-hours`` x price would pass the
   cap (``--cap-usd``, default $10, the pre-registered base plan's kill switch).
@@ -54,6 +54,9 @@ POD_DIR = Path("runs/pods")
 LEDGER = POD_DIR / "ledger.jsonl"
 NAME_PREFIX = "parataxis-"
 DEFAULT_CAP_USD = 10.0
+# RunPod's API and its pod proxy sit behind Cloudflare, which refuses urllib's default User-Agent
+# (error 1010); a plain client name is enough. It carries nothing about the user.
+USER_AGENT = "parataxis/0.1"
 
 # The serving configuration (pre-registered; the day-1 smoke test may fall back as PREREGISTRATION.md says).
 DEFAULT_IMAGE = "vllm/vllm-openai:v0.27.2"
@@ -98,11 +101,12 @@ class RunPod:
     opener: Callable[..., Any] = urllib.request.urlopen
 
     def _req(self, method: str, path: str, body: Mapping[str, Any] | None = None) -> Any:
-        token = os.environ.get("RUNPOD_API_KEY") or "injected-by-proxy"
+        headers = {"content-type": "application/json", "accept": "application/json", "user-agent": USER_AGENT}
+        token = os.environ.get("RUNPOD_API_KEY", "")
+        if token and token != "proxy-injected":  # normally unset: the environment's proxy adds the header
+            headers["authorization"] = "Bearer " + token
         req = urllib.request.Request(self.base.rstrip("/") + path, method=method,
-                                     data=None if body is None else json.dumps(body).encode(),
-                                     headers={"authorization": "Bearer " + token, "content-type": "application/json",
-                                              "accept": "application/json"})
+                                     data=None if body is None else json.dumps(body).encode(), headers=headers)
         try:
             with self.opener(req, timeout=self.timeout) as r:
                 raw = r.read()
@@ -222,7 +226,7 @@ def terminate(rp: RunPod, pod_id: str, *, ledger: Path = LEDGER, reason: str = "
 
 
 def _http(url: str, key: str | None, timeout: float = 10.0, opener=urllib.request.urlopen) -> tuple[int, str]:
-    headers = {"authorization": "Bearer " + key} if key else {}
+    headers = {"user-agent": USER_AGENT, **({"authorization": "Bearer " + key} if key else {})}
     try:
         with opener(urllib.request.Request(url, headers=headers), timeout=timeout) as r:
             return r.status, r.read().decode("utf-8", "replace")
