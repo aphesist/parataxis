@@ -88,7 +88,7 @@ from .lanes_detect import (
 )
 from contraprova.harness.outline import render_outline
 from .unit_edits import strip_blocks
-from .symbols import lane_view as _lane_view, merge_span_edits, restrict_to_spans, spans_for, units as _units
+from .symbols import MODULE, lane_view as _lane_view, merge_span_edits, module_spans as _module_spans, restrict_to_spans, spans_for, units as _units
 from contraprova.harness.polyglot import sha256_json, sha256_text
 from contraprova.harness.swepro import CHARS_PER_TOKEN, TEST_PATTERNS, ProExercise, ProTestSplit, estimate_tokens, is_test_path
 
@@ -257,20 +257,50 @@ owns it. Include every function, method or class named in the task's Interface s
 Reply with one JSON object in a ```json code block and nothing else, in this schema:
 {schema}"""
 
-PLAN_UNITS_RULES = """
-Units (below file level):
-- A large file may be split between lanes by its units, listed under it as path::name (functions, classes, \
-methods of large classes, or line blocks of non-code files). A lane that owns only some units of a file lists \
-them in "units" (for example "units": ["src/app.py::Handler.post"]) and does not list that file in "files". \
-Each unit belongs to at most one lane; a file is either owned whole by one lane (in its "files") or split by \
-units, never both. Units nobody owns stay unchanged.
-- A lane sees its units in full and only an outline of the rest of their file, and may add new helpers directly \
-below its units. Prefer one lane per independent piece of work, up to {max_lanes}.
-"""
-
 PLAN_SCHEMA_UNITS = PLAN_SCHEMA.replace('"files": ["path"],', '"files": ["path"], "units": ["path::name"],')
+PLAN_SCHEMA_UNITS_MERGE = PLAN_SCHEMA_UNITS.replace(
+    '"tests": ["visible test names, copied exactly"]}]',
+    '"tests": ["visible test names, copied exactly"],\n            "merge": {"reason": "only when the lane holds several units", '
+    '"why": "one sentence"}}]')
 
-UNIT_LIST_MIN_LINES = 150  # files at least this long get their units listed for the planner
+# Why a lane may hold several units (PREREGISTRATION.md: the lane count comes from the contract units).
+MERGE_REASONS = ("same-unit", "definition-and-caller", "ordering", "cap")
+
+PLAN_REQUEST_UNITS = """
+## Request: lane plan
+Plan this change as parallel lanes. Each lane is done by a separate programmer, in parallel, who sees in full only \
+the units the lane owns and an outline of everything else. The number of lanes comes from the units to change.
+
+Rules:
+- Name every unit the change needs, from the list below: each function, method or class to change (path::name), \
+the module-level lines of a file when they must change (path::<module>: imports, constants, top-level code), each \
+whole file listed without units, and each new file. Name only units that must change; units nobody owns stay \
+unchanged. Every file below needs at least one lane. Never assign a test file.
+- Give each unit its own lane, up to {max_lanes} lanes. Put several units in one lane only when they must change \
+together, for one of these reasons:
+  - "same-unit": they are parts of one unit (for example a class header and its methods);
+  - "definition-and-caller": a definition and its only caller, written in one step;
+  - "ordering": one cannot be written before the other is done (a hard ordering dependency);
+  - "cap": the change needs more than {max_lanes} units, so some must share a lane.
+  Such a lane states its reason in "merge": {{"reason": "<one of the four>", "why": "<one sentence>"}}. Owning a \
+file with listed units whole (in "files") merges all of its units and needs a reason too. A plan that merges units \
+without a stated reason is rejected.
+- A lane that owns some units of a file lists them in "units" and does not list that file in "files". Each unit \
+belongs to at most one lane; a file is either owned whole by one lane or split by units, never both. A lane sees \
+its units in full and an outline of the rest of their file, and may add new helpers directly below its units.
+- For each lane give its goal (at most 80 words), the symbols it may change, the interfaces it provides to other \
+lanes and those it uses from them, and the visible tests (names exactly as listed above) it should help make pass.
+- Freeze every interface that crosses lanes (a symbol one lane defines or changes and another lane uses) with its \
+exact signature (Python: name(params) -> type; JavaScript/TypeScript: name(params)), its file and the lane that \
+owns it. Include every function, method or class named in the task's Interface section.
+
+## Files and units
+{files}
+
+Reply with one JSON object in a ```json code block and nothing else, in this schema:
+{schema}"""
+
+UNIT_LIST_MIN_LINES = 150  # non-code files at least this long get their line blocks listed for the planner
 UNIT_LIST_MAX = 60  # at most this many units listed per file
 SPLIT_CLASS_LINES = 120  # a class longer than this is split into its methods
 
@@ -310,6 +340,7 @@ class Lane:
     tests: tuple[str, ...] = ()  # visible tests assigned by the plan
     # "path::unit" ids: in these paths (also in ``allowed``) the lane owns only these units
     units: tuple[str, ...] = ()
+    merge: str = ""  # why this lane holds several units ("reason: why"), when it does
 
     @property
     def files(self) -> tuple[str, ...]:
@@ -326,7 +357,7 @@ class Lane:
         return {"lane_id": self.lane_id, "allowed": list(self.allowed), "new_files": list(self.new_files),
                 "goal": self.goal, "symbols": list(self.symbols), "exports": list(self.exports),
                 "imports": list(self.imports), "tests": list(self.tests),
-                **({"units": list(self.units)} if self.units else {})}
+                **({"units": list(self.units)} if self.units else {}), **({"merge": self.merge} if self.merge else {})}
 
 
 @dataclass(frozen=True)
@@ -489,9 +520,13 @@ def parse_plan(text: str, ex: ProExercise, ts: ProTestSplit, *, max_lanes: int =
 
     def unit_names(path: str) -> set[str]:
         if path not in unit_cache:
-            unit_cache[path] = {u.name for u in _units(path, ex.context.files[path],
-                                                        split_class_lines=SPLIT_CLASS_LINES)}
+            src = ex.context.files[path]
+            unit_cache[path] = {u.name for u in _units(path, src, split_class_lines=SPLIT_CLASS_LINES)}
+            if _module_spans(path, src, split_class_lines=SPLIT_CLASS_LINES):
+                unit_cache[path].add(MODULE)
         return unit_cache[path]
+
+    merges: list[tuple[str, int, Any]] = []  # (lane, units it holds, its "merge" field)
     for n, item in enumerate(raw, 1):
         if not isinstance(item, dict):
             errors.append(f"lane {n} is not an object")
@@ -525,17 +560,35 @@ def parse_plan(text: str, ex: ProExercise, ts: ProTestSplit, *, max_lanes: int =
                 owners.setdefault(f, []).append(lid)
         if not files and not lane_units:
             errors.append(f"lane {lid} has no files")
+        if symbol_lanes:
+            held = len(lane_units) + len([f for f in files if f in new])
+            held += sum(max(1, len(planner_units(f, ex.context.files[f]))) for f in files if f in existing)
+            merges.append((lid, held, item.get("merge")))
         tests = _strs(item.get("tests"))
         unknown = [t for t in tests if t not in visible]
         if unknown:
             warnings.append(f"lane {lid}: {len(unknown)} test name(s) not among the visible tests were dropped")
+        m = item.get("merge") if isinstance(item.get("merge"), dict) else {}
+        merge = f"{str(m.get('reason') or '').strip()}: {str(m.get('why') or '').strip()}"[:400] if m else ""
         lanes.append(Lane(lid, tuple(sorted({*(f for f in files if f in existing), *unit_paths})),
                           tuple(sorted(f for f in files if f in new)),
                           str(item.get("goal") or "").strip()[:2000], _strs(item.get("symbols")),
                           _strs(item.get("provides") or item.get("exports")), _strs(item.get("uses") or item.get("imports")),
-                          tuple(t for t in tests if t in visible), tuple(lane_units)))
+                          tuple(t for t in tests if t in visible), tuple(lane_units), merge))
     if len(raw) > max_lanes:
         errors.append(f"{len(raw)} lanes; at most {max_lanes} are allowed")
+    total = sum(n for _, n, _ in merges)
+    for lid, n, m in merges:  # the lane count comes from the units: merging needs a stated reason
+        if n <= 1:
+            continue
+        reason = str(m.get("reason") or "").strip() if isinstance(m, dict) else ""
+        why = str(m.get("why") or "").strip() if isinstance(m, dict) else ""
+        if reason not in MERGE_REASONS or len(why.split()) < 3:
+            errors.append(f"lane {lid} holds {n} units without a stated reason: give \"merge\": "
+                          f"{{\"reason\": one of {', '.join(MERGE_REASONS)}, \"why\": one sentence}}, or split it")
+        elif reason == "cap" and total <= max_lanes:
+            errors.append(f"lane {lid}: reason \"cap\" applies only when the change needs more than {max_lanes} units "
+                          f"(this plan names {total})")
     for f, ls in sorted(owners.items()):
         if len(ls) > 1:
             errors.append(f"{f} is assigned to lanes {', '.join(ls)}; each file belongs to exactly one lane")
@@ -1101,6 +1154,22 @@ class _LaneState:
     last_feedback: str = ""
 
 
+def planner_units(path: str, source: str) -> list[tuple[str, int]]:
+    """The units listed for the planner under a file, as (name, lines); empty when the file is one
+    unit (it is then owned whole). Code files with two or more units list them all (up to
+    :data:`UNIT_LIST_MAX`), with their module-level lines as ``<module>``; other files list their line
+    blocks from :data:`UNIT_LIST_MIN_LINES` lines on."""
+    us = _units(path, source, split_class_lines=SPLIT_CLASS_LINES)
+    if us and all(u.kind == "block" for u in us):
+        n = source.count("\n") + 1
+        return [(u.name, u.lines) for u in us] if n >= UNIT_LIST_MIN_LINES and len(us) > 1 else []
+    mod = _module_spans(path, source, split_class_lines=SPLIT_CLASS_LINES)
+    items = [(u.name, u.lines) for u in us]
+    if mod and any(source.split("\n")[k - 1].strip() for m in mod for k in range(m.start, m.end + 1)):
+        items.append((MODULE, sum(m.lines for m in mod)))
+    return items if len(items) > 1 else []
+
+
 def _planner_context(h, ex: ProExercise, ts: ProTestSplit, max_lanes: int, symbol_lanes: bool = False) -> str:
     if not symbol_lanes:
         files = [f"{p} ({ex.context.files[p].count(chr(10)) + 1} lines)" for p in sorted(ex.context.files)]
@@ -1111,17 +1180,15 @@ def _planner_context(h, ex: ProExercise, ts: ProTestSplit, max_lanes: int, symbo
     for p in sorted(ex.context.files):
         src = ex.context.files[p]
         n = src.count("\n") + 1
-        lines.append(f"- {p} ({n} lines)")
-        if n >= UNIT_LIST_MIN_LINES:
-            us = _units(p, src, split_class_lines=SPLIT_CLASS_LINES)
-            for u in us[:UNIT_LIST_MAX]:
-                lines.append(f"  - {u.unit_id} ({u.lines} lines)")
-            if len(us) > UNIT_LIST_MAX:
-                lines.append(f"  - ... {len(us) - UNIT_LIST_MAX} more units (assign this file whole to reach them)")
+        items = planner_units(p, src)
+        lines.append(f"- {p} ({n} lines)" + ("" if items else ": one unit, owned whole"))
+        for name, size in items[:UNIT_LIST_MAX]:
+            lines.append(f"  - {p}::{name} ({size} lines)")
+        if len(items) > UNIT_LIST_MAX:
+            lines.append(f"  - ... {len(items) - UNIT_LIST_MAX} more units (name them as path::name, or own the file whole)")
     lines += [f"- {p} (new file)" for p in sorted(ex.context.new_files)]
-    request = PLAN_REQUEST.format(max_lanes=max_lanes, files="\n".join(lines) or "(none)", schema=PLAN_SCHEMA_UNITS)
-    request = request.replace("\n## Files to assign", PLAN_UNITS_RULES.format(max_lanes=max_lanes) + "\n## Files to assign")
-    return h.lead_context(ex, ts) + request
+    return h.lead_context(ex, ts) + PLAN_REQUEST_UNITS.format(max_lanes=max_lanes, files="\n".join(lines) or "(none)",
+                                                              schema=PLAN_SCHEMA_UNITS_MERGE)
 
 
 def plan_lanes(h, ex: ProExercise, ts: ProTestSplit, tid: str, cfg: LaneConfig,

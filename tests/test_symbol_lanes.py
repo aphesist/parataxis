@@ -120,8 +120,8 @@ def test_planner_sees_units_of_large_files_only_in_symbol_mode(tmp_path):
     h, _, _ = harness(tmp_path, {IID: ex})
     on = _planner_context(h, ex, ex.test_split, 8, True)
     off = _planner_context(h, ex, ex.test_split, 8, False)
-    assert "lib/m.py::f3" in on and "Units (below file level)" in on and '"units"' in on
-    assert "lib/m.py::f3" not in off and "Units (below file level)" not in off
+    assert "lib/m.py::f3" in on and "## Files and units" in on and '"units"' in on and '"merge"' in on
+    assert "lib/m.py::f3" not in off and "## Files and units" not in off
 
 
 def test_a_logged_plan_is_replayed_at_zero_tokens(tmp_path):
@@ -148,3 +148,68 @@ def test_a_logged_plan_is_replayed_at_zero_tokens(tmp_path):
     planner = [u for u in events_of(h2, "usage.recorded") if u.get("lane_role") == "planner"]
     assert planner and planner[0]["replay"] is True
     assert request_cost(planner[0], PRICE_TABLES[DEFAULT_TABLE]) == 0.0
+
+
+# ------------------------------------------------------------------ the lane count comes from the units
+
+IMPORT_SRC = '"""Mod."""\nimport os\n\n\ndef first(x):\n    return x + 1\n\n\ndef second(y):\n    return y * 2\n'
+
+
+def _ex(orig=None, new=None):
+    orig = orig or {"lib/m.py": M_SRC}
+    new = new or NEW
+    return make_ex(IID, orig=orig, new=new, interface="", f2p=["tests/test_m.py::test_first"])
+
+
+def _plan(*lanes):
+    return "```json\n" + json.dumps({"lanes": list(lanes), "interfaces": [], "rationale": "r"}) + "\n```"
+
+
+def test_a_lane_holding_several_units_needs_a_stated_reason():
+    ex = _ex()
+    ts = ex.test_split
+    merged = {"lane_id": "L1", "goal": "both", "units": ["lib/m.py::first", "lib/m.py::second"]}
+    d = {"lane_id": "L2", "goal": "d", "files": ["lib/d.py"]}
+    bad = parse_plan(_plan(merged, d), ex, ts, max_lanes=8, symbol_lanes=True)
+    assert bad.plan is None and any("holds 2 units without a stated reason" in e for e in bad.errors)
+    vague = parse_plan(_plan({**merged, "merge": {"reason": "ordering", "why": "x"}}, d), ex, ts, max_lanes=8,
+                       symbol_lanes=True)
+    assert vague.plan is None  # a reason needs a sentence
+    ok = parse_plan(_plan({**merged, "merge": {"reason": "ordering", "why": "second calls the new first"}}, d),
+                    ex, ts, max_lanes=8, symbol_lanes=True)
+    assert ok.plan is not None and ok.plan.lane("L1").merge == "ordering: second calls the new first"
+    cap = parse_plan(_plan({**merged, "merge": {"reason": "cap", "why": "too many units here"}}, d), ex, ts,
+                     max_lanes=8, symbol_lanes=True)
+    assert cap.plan is None and any('"cap" applies only' in e for e in cap.errors)
+    capped = parse_plan(_plan({**merged, "merge": {"reason": "cap", "why": "too many units here"}}, d), ex, ts,
+                        max_lanes=1, symbol_lanes=True)
+    assert not any("cap" in e for e in capped.errors)  # 3 units for 1 lane: cap is a valid reason
+
+
+def test_owning_a_listed_file_whole_is_a_merge():
+    ex = _ex()
+    whole = {"lane_id": "L1", "goal": "m", "files": ["lib/m.py"]}
+    d = {"lane_id": "L2", "goal": "d", "files": ["lib/d.py"]}
+    got = parse_plan(_plan(whole, d), ex, ex.test_split, max_lanes=8, symbol_lanes=True)
+    assert got.plan is None and any("lane L1 holds" in e for e in got.errors)
+    assert parse_plan(_plan(whole, d), ex, ex.test_split, max_lanes=8).plan is not None  # API-study mode unchanged
+    one_lane_each = parse_plan("```json\n" + json.dumps(PLAN) + "\n```", ex, ex.test_split, max_lanes=8,
+                               symbol_lanes=True)
+    assert one_lane_each.plan is not None and one_lane_each.plan.k == 3
+
+
+def test_module_lines_are_a_unit_a_lane_can_own(tmp_path):
+    from parataxis.lanes import Lane, planner_units, restrict_lane_files
+
+    new_src = IMPORT_SRC.replace("import os", "import os\nimport re").replace("return y * 2", "return re or y")
+    ex = _ex({"lib/m.py": IMPORT_SRC}, {"lib/m.py": new_src})
+    assert [n for n, _ in planner_units("lib/m.py", IMPORT_SRC)] == ["first", "second", "<module>"]
+    plan = _plan({"lane_id": "L1", "goal": "import", "units": ["lib/m.py::<module>"]},
+                 {"lane_id": "L2", "goal": "second", "units": ["lib/m.py::second"]})
+    got = parse_plan(plan, ex, ex.test_split, max_lanes=8, symbol_lanes=True)
+    assert got.plan is not None and got.errors == ()
+    kept, rejected = restrict_lane_files(ex, got.plan.lane("L1"), {"lib/m.py": new_src})
+    assert "import re" in kept["lib/m.py"] and "return y * 2" in kept["lib/m.py"] and rejected
+    h, _, _ = harness(tmp_path, {IID: ex})
+    ctx = _planner_context(h, ex, ex.test_split, 8, True)
+    assert "lib/m.py::<module>" in ctx and "Give each unit its own lane" in ctx and "Use fewer lanes" not in ctx

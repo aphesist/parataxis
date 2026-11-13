@@ -219,3 +219,68 @@ def test_merge_span_edits_combines_lanes_and_reports_overlaps():
     assert "return x + 2" in merged2 and "x * 9" not in merged2
     assert conflicts2 and conflicts2[0][:2] == ("L2", "L1")
     assert merge_span_edits(PY, [("L1", PY)]) == (PY, [])
+
+
+# ------------------------------------------------------------------ wide fan-out: module lines, groups, crossing changes
+
+THREE = "import os\n\n\ndef a():\n    return 1\n\n\ndef b():\n    return 2\n\n\ndef c():\n    return 3\n"
+
+
+def test_a_change_across_adjacent_owned_units_is_in_scope_and_others_are_not():
+    from parataxis.symbols import restrict_to_spans, spans_for
+
+    gone = THREE.replace("def a():\n    return 1\n\n\ndef b():\n    return 2\n\n\n", "")  # a and b deleted in one hunk
+    both = spans_for("m.py", THREE, ["a", "b"])
+    text, rejected = restrict_to_spans(THREE, gone, both)
+    assert text == gone and rejected == []
+    text, rejected = restrict_to_spans(THREE, gone, spans_for("m.py", THREE, ["a"]))
+    assert text == THREE and rejected  # b is not this lane's: the whole hunk is undone
+
+
+def test_unit_groups_join_units_one_hunk_crosses():
+    from parataxis.symbols import unit_groups, unit_items
+
+    gone = THREE.replace("def a():\n    return 1\n\n\ndef b():\n    return 2\n\n\n", "")
+    assert unit_items("m.py", THREE, gone) == ["a", "b"]
+    assert unit_groups("m.py", THREE, gone) == [["a", "b"]]  # one hunk deletes both: one lane must own both
+    apart = THREE.replace("return 1", "return 11").replace("return 3", "return 33")
+    assert unit_groups("m.py", THREE, apart) == [["a"], ["c"]]
+    imp = THREE.replace("import os", "import os, re").replace("return 2", "return 22")
+    assert unit_groups("m.py", THREE, imp) == [["<module>"], ["b"]]
+
+
+def test_the_dry_planner_gives_one_lane_per_unit_group_with_valid_reasons():
+    import json
+
+    from parataxis.dry import lane_share, unit_plan
+    from parataxis.lanes import parse_plan
+
+    from test_lanes import make_ex
+
+    src = "\n\n".join(f"def f{i}(x):\n    return x + {i}\n" for i in range(12))
+    new = src.replace("return x + 1\n", "return x - 1\n").replace("return x + 5\n", "return x - 5\n") \
+        .replace("return x + 9\n", "return x - 9\n")
+    iid = "instance_ansible__ansible-" + "%040x" % 7 + "-vnan"
+    ex = make_ex(iid, orig={"lib/m.py": src}, new={"lib/m.py": new}, interface="", f2p=["tests/test_m.py::t"])
+    plan = unit_plan(ex, 8)
+    assert [ln["units"] for ln in plan["lanes"]] == [["lib/m.py::f1"], ["lib/m.py::f5"], ["lib/m.py::f9"]]
+    got = parse_plan("```json\n" + json.dumps(plan) + "\n```", ex, ex.test_split, max_lanes=8, symbol_lanes=True)
+    assert got.plan is not None and got.plan.k == 3
+    assert "x - 5" in lane_share(ex, plan["lanes"][1]) and "x - 1" not in lane_share(ex, plan["lanes"][1])
+    capped = unit_plan(ex, 2)
+    assert len(capped["lanes"]) == 2 and [ln.get("merge", {}).get("reason") for ln in capped["lanes"]] == [None, "cap"]
+    assert parse_plan("```json\n" + json.dumps(capped) + "\n```", ex, ex.test_split, max_lanes=2,
+                      symbol_lanes=True).plan is not None
+
+
+def test_every_insertion_point_has_exactly_one_owner():
+    from parataxis.symbols import file_spans, insertion_owner, restrict_to_spans, spans_for
+
+    lines = THREE.split("\n")
+    every = file_spans("m.py", THREE)
+    for at in range(len(lines)):
+        assert insertion_owner(every, at, lines) is not None
+    new = THREE.replace("\n\n\ndef b", "\n\n\ndef helper():\n    return 0\n\n\ndef b")  # a new function above b
+    owners = [names for names in (["<module>"], ["a"], ["b"])
+              if restrict_to_spans(THREE, new, spans_for("m.py", THREE, names))[0] == new]
+    assert owners == [["a"]]  # the blank lines between a and b belong to a, the unit above

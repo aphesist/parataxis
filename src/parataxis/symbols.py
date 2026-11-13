@@ -439,9 +439,9 @@ def scope_violations(owned: Sequence[Span], before: Mapping[str, str], after: Ma
                      *, new_files: Sequence[str] = ()) -> list[ScopeViolation]:
     """Check a lane's edit against its owned spans. ``before``/``after`` map path -> text for every
     file the edit touched (missing in ``before`` = created). A created file is in scope only if it
-    is in ``new_files``. A changed base line must lie in an owned span; an insertion must lie in an
-    owned span or directly after one (``end`` is a valid insertion point, so a lane can add a
-    helper below its own function), or at a blank line run that directly follows one."""
+    is in ``new_files``. A changed non-blank base line must lie in an owned span; an insertion
+    point must be owned by one of the lane's spans (:func:`insertion_owner`: inside it, directly
+    below it, or in the blank lines below it, so a lane can add a helper below its own function)."""
     out: list[ScopeViolation] = []
     by_path: dict[str, list[Span]] = {}
     for s in owned:
@@ -461,16 +461,11 @@ def scope_violations(owned: Sequence[Span], before: Mapping[str, str], after: Ma
         base_lines = base.split("\n")
         changed, inserts = changed_lines(base, new)
         for line in changed:
-            if not any(s.contains(line) for s in spans):
+            if base_lines[line - 1].strip() and not any(s.contains(line) for s in spans):
                 out.append(ScopeViolation(path, line, "changed"))
-        for at in inserts:
-            ok = any(s.start - 1 <= at <= s.end for s in spans)
-            if not ok:
-                # allow insertion in the blank lines that follow an owned span
-                k = at
-                while k >= 1 and not base_lines[k - 1].strip():
-                    k -= 1
-                ok = any(s.end == k for s in spans)
+        every = file_spans(path, base)
+        for at in inserts:  # the scope gate's rule: exactly one span owns each insertion point
+            ok = _in_scope(spans, at, at, base_lines, every)
             if not ok:
                 out.append(ScopeViolation(path, at, "inserted"))
     return out
@@ -484,13 +479,22 @@ def _opcodes(base: str, new: str):
     return a, b, [op for op in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes() if op[0] != "equal"]
 
 
-def _in_scope(spans: Sequence[Span], i1: int, i2: int, base_lines: Sequence[str]) -> bool:
-    """Whether the base-line range [i1, i2) (0-based, half-open) may be changed: replaced/deleted
-    lines all inside one owned span, or an insertion inside a span, at its edges, or in the blank
-    lines right after it."""
+def _in_scope(spans: Sequence[Span], i1: int, i2: int, base_lines: Sequence[str],
+              all_spans: Sequence[Span] | None = None) -> bool:
+    """Whether the base-line range [i1, i2) (0-based, half-open) may be changed: every replaced or
+    deleted non-blank line lies in an owned span (several adjacent owned units may change in one
+    piece; blank lines between them go with them), or an insertion inside a span, at its edges, or
+    in the blank lines right after it."""
     if i2 > i1:
-        return any(s.start <= i1 + 1 and i2 <= s.end for s in spans)
+        lines = [no for no in range(i1 + 1, i2 + 1) if base_lines[no - 1].strip()]
+        if lines:
+            return all(any(s.contains(no) for s in spans) for no in lines)
+        if all_spans is None:  # only blank lines: in scope next to an owned span
+            return any(s.start - 1 <= i2 and i1 <= s.end for s in spans)
     at = i1  # insertion after base line `at` (1-based count of lines before it)
+    if all_spans is not None:  # the file's spans are known: exactly one span owns each insertion point
+        owner = insertion_owner(all_spans, at, base_lines)
+        return owner is not None and any((o.start, o.end, o.name) == (owner.start, owner.end, owner.name) for o in spans)
     if any(s.start - 1 <= at <= s.end for s in spans):
         return True
     k = at
@@ -499,16 +503,18 @@ def _in_scope(spans: Sequence[Span], i1: int, i2: int, base_lines: Sequence[str]
     return any(s.end == k for s in spans)
 
 
-def restrict_to_spans(base: str, new: str, spans: Sequence[Span]) -> tuple[str, list[tuple[int, int]]]:
+def restrict_to_spans(base: str, new: str, spans: Sequence[Span], *,
+                      split_class_lines: int = 120) -> tuple[str, list[tuple[int, int]]]:
     """``new`` with every change outside ``spans`` undone: the text a lane may contribute to a file
     it shares with other lanes, and the rejected base ranges (1-based first line, line count)."""
     a, b, ops = _opcodes(base, new)
+    every = file_spans(spans[0].path, base, split_class_lines=split_class_lines) if spans else None
     out: list[str] = []
     rejected: list[tuple[int, int]] = []
     pos = 0
     for tag, i1, i2, j1, j2 in ops:
         out += a[pos:i1]
-        if _in_scope(spans, i1, i2, a):
+        if _in_scope(spans, i1, i2, a, every):
             out += b[j1:j2]
         else:
             out += a[i1:i2]
@@ -546,6 +552,126 @@ def merge_span_edits(base: str, versions: Sequence[tuple[str, str]]) -> tuple[st
 
 
 def spans_for(path: str, source: str, names: Iterable[str], *, split_class_lines: int = 120) -> list[Span]:
-    """The spans of ``path`` named ``names`` (unit names as :func:`units` gives them)."""
+    """The spans of ``path`` named ``names`` (unit names as :func:`units` gives them, or
+    :data:`MODULE` for the file's module-level lines)."""
     want = set(names)
-    return [u for u in units(path, source, split_class_lines=split_class_lines) if u.name in want]
+    out = [u for u in units(path, source, split_class_lines=split_class_lines) if u.name in want]
+    if MODULE in want:
+        out += module_spans(path, source, split_class_lines=split_class_lines)
+    return sorted(out)
+
+
+MODULE = "<module>"  # the pseudo-unit of a code file's module-level lines (imports, constants, top-level code)
+
+
+def module_spans(path: str, source: str, *, split_class_lines: int = 120) -> list[Span]:
+    """The lines of a code file outside every unit, as spans named :data:`MODULE`: imports, module
+    constants and other top-level code. A lane that owns ``path::<module>`` may change them, so a
+    file split by units can still get a new import. Empty for files whose units are line blocks."""
+    us = units(path, source, split_class_lines=split_class_lines)
+    if not us or all(u.kind == "block" for u in us):
+        return []
+    lines = source.split("\n")
+    n = len(lines) - 1 if lines and lines[-1] == "" else len(lines)
+    covered = [False] * (n + 2)
+    for u in us:
+        for k in range(u.start, min(u.end, n) + 1):
+            covered[k] = True
+    out: list[Span] = []
+    start = None
+    for no in range(1, n + 2):
+        if no <= n and not covered[no]:
+            start = no if start is None else start
+        elif start is not None:
+            out.append(Span(path, start, no - 1, MODULE, "module"))
+            start = None
+    return out
+
+
+def file_spans(path: str, base: str, *, split_class_lines: int = 120) -> list[Span]:
+    """Every span of a file: its units and its module-level spans, in line order."""
+    return sorted(units(path, base, split_class_lines=split_class_lines)
+                  + module_spans(path, base, split_class_lines=split_class_lines))
+
+
+def _blank_span(s: Span, base_lines: Sequence[str]) -> bool:
+    return s.kind == "module" and not any(base_lines[k - 1].strip() for k in range(s.start, min(s.end, len(base_lines)) + 1))
+
+
+def insertion_owner(spans: Sequence[Span], at: int, base_lines: Sequence[str]) -> Span | None:
+    """The one span that owns an insertion after base line ``at`` (0 = top), so that two lanes never
+    both may insert at the same point: the span holding the point inside it; else the span ending at
+    it (a helper goes directly below its unit); a run of blank lines between units belongs to the
+    unit above it; the top of the file to the first span."""
+    if not spans:
+        return None
+    spans = sorted(spans)
+    holder = next((s for s in spans if s.start <= at < s.end), None) or next((s for s in spans if s.end == at), None)
+    if holder is None:
+        return spans[0]
+    while _blank_span(holder, base_lines):  # blank separators go with the unit above them
+        above = [s for s in spans if s.end < holder.start]
+        if not above:
+            return holder
+        holder = above[-1]
+    return holder
+
+
+def unit_groups(path: str, base: str, new: str, *, split_class_lines: int = 120) -> list[list[str]]:
+    """The units a change touches, grouped so that units one contiguous change (one diff hunk of
+    replaced or deleted lines) crosses are in one group: no lane could make that change unless it
+    owns all of them. Groups in file order; names as :func:`unit_items` gives them."""
+    us = units(path, base, split_class_lines=split_class_lines)
+    spans = sorted(us + module_spans(path, base, split_class_lines=split_class_lines))
+    a, b = base.split("\n"), new.split("\n")
+    parent: dict[str, str] = {}
+
+    def find(x: str) -> str:
+        while parent.setdefault(x, x) != x:
+            x = parent[x]
+        return x
+
+    order = unit_items(path, base, new, split_class_lines=split_class_lines)
+    for name in order:
+        find(name)
+    for tag, i1, i2, _j1, _j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
+        if tag not in ("replace", "delete"):
+            continue
+        hit = {s.name for s in spans for no in range(i1 + 1, i2 + 1) if a[no - 1].strip() and s.contains(no)}
+        hit &= set(order)
+        hit = sorted(hit)
+        for x in hit[1:]:
+            parent[find(x)] = find(hit[0])
+    groups: dict[str, list[str]] = {}
+    for name in order:
+        groups.setdefault(find(name), []).append(name)
+    return list(groups.values())
+
+
+def unit_items(path: str, base: str, new: str, *, split_class_lines: int = 120) -> list[str]:
+    """The unit names (``MODULE`` included) a change from ``base`` to ``new`` touches, in file order,
+    using the scope gate's rules: a changed non-blank line belongs to the span holding it; an
+    insertion (or new code written over blank lines) to :func:`insertion_owner`."""
+    us = units(path, base, split_class_lines=split_class_lines)
+    spans = sorted(us + module_spans(path, base, split_class_lines=split_class_lines))
+    base_lines, new_lines = base.split("\n"), new.split("\n")
+    changed: list[int] = []
+    inserts: list[int] = []
+    for tag, i1, i2, _j1, _j2 in difflib.SequenceMatcher(None, base_lines, new_lines, autojunk=False).get_opcodes():
+        if tag == "insert":
+            inserts.append(i1)
+        elif tag in ("replace", "delete"):
+            solid = [no for no in range(i1 + 1, i2 + 1) if base_lines[no - 1].strip()]
+            changed += solid  # blank lines go with the units next to them (the scope gate's rule)
+            if not solid and tag == "replace":
+                inserts.append(i1)  # new code written over blank lines is an insertion there
+    hit: dict[str, int] = {}
+    for line in changed:
+        for s in spans:
+            if s.contains(line):
+                hit.setdefault(s.name, s.start)
+    for at in inserts:
+        owner = insertion_owner(spans, at, base_lines)
+        if owner is not None:
+            hit.setdefault(owner.name, owner.start)
+    return sorted(hit, key=lambda name: hit[name])
