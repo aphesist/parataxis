@@ -190,6 +190,12 @@ these hashes describe the calibrated code. they are re-frozen after b.6, and a c
 3. **the lane pre-flight's planner output estimate:** set to 1,199 tokens, the api study's measured median, instead of contraprova's default. the calibration planner cap was raised from $0.80 to $1.00, keeping the 1.2 margin, with approval.
 4. **L1's calibration pass ran in three logs:** a stream drop led to the fix `06b8141`, then a container restart. 2 + 5 + 5 tasks; tasks in flight were rerun from scratch.
 5. **metrics logging** started at 02:25 instead of at the first pass. the preemption counter is cumulative, so preemptions are covered in full.
+6. **edit format (calibration-stage change, approved; b.6):** the local arms' edit format is now symbol-unit blocks plus SEARCH/REPLACE ([`src/parataxis/unit_edits.py`](src/parataxis/unit_edits.py); `--edit-format units`, the default with `--local`).
+   - a UNIT block replaces a function, method or class by name. an AFTER block adds code below one.
+   - the harness rewrites both into exact SEARCH/REPLACE blocks from the original file, so parsing, scope gates, merges and logs are unchanged.
+   - the prompt asks for UNIT only on units of up to about 60 lines, or ones mostly rewritten, and SEARCH/REPLACE for small changes inside long units. this keeps replies no longer than SEARCH/REPLACE: replaying the gold patches of the 37 main tasks, unit replies were 1.0× (median) and 1.1× (p90) the SEARCH/REPLACE length for L1. without the rule they were 1.14× and 1.68×.
+   - it applies to L1, La and Lb alike, including their retry and repair texts. the calibration logs above used `--edit-format search`.
+7. **Lb notes:** the blackboard note now strips edit blocks in their canonical form. the earlier pattern missed them. Lb has not run yet.
 
 ### b.6 required before the freeze: the failed checks
 
@@ -205,6 +211,13 @@ these hashes describe the calibrated code. they are re-frozen after b.6, and a c
   2. **repeat the calibration** with the plans replayed: L1, La2 twice, La4, La8; $0 planner, about 2.5 pod hours, about $1.75 gpu inside the $10 cap.
   3. **then:** re-choose n by the same rule, re-check format compliance, output caps and noise, and re-freeze the hashes.
 - **if the new format still fails compliance:** the protocol's next step is another model, which this part would name.
+- **built (2026-11-13):** the format and its tests (30), and $0 dry runs where the offline workers answer the gold patch in unit blocks. every task solved, with no unit-block error and no edit failure:
+  - 12 probe tasks with L1, La and Lb (54 unit blocks from L1);
+  - 37 main tasks with L1 and La (194 unit blocks).
+- **found while building: L1's 8K output cap is too small for its task.** written as compact SEARCH/REPLACE blocks, the gold patch alone exceeds 8K tokens on 9 of the 37 main tasks for L1 (6 at 12K, 3 at 16K; characters / 3.6). only 5 of 111 La lane replies do, because lanes split the work.
+  - part a fixes 8K per lane request; L1's 8K was an implementation choice (it reused the lane constant).
+  - proposed: **L1 gets 16K output tokens**, decided before the repeat calibration.
+- **open: the lane count.** part a takes the lane count "from the contract units". the planner prompt as built leaves the count to opus (1 to 8, "fewer lanes when the files are tightly coupled"), and makes symbol units optional. the calibration plans had 1–4 lanes (10 of 12 had 1 or 2), and only 2 of 25 lanes owned units. the fix and its cost are proposed separately; it changes the plans, so the 12 probe plans would be bought again.
 
 ### b.7 main-run planner cost and the proposed cap
 
