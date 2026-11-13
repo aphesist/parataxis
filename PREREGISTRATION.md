@@ -166,6 +166,12 @@ the prefix-cache counter is recorded (unverified if vllm does not export it).
   - **proposed:** n = 2 by the rule, with no preemption.
   - **caveat:** the two n = 2 runs show that test-gated tok/s varies more between runs than n is likely to change it at 10 tasks. raw throughput rose with n (180–191 tok/s at n = 2, 210 at n = 4).
   - **for the parent:** whether to finish La4 and La8 first (about 1 pod-hour, about $0.75).
+- **completed** ([`results/local-calib4`](results/local-calib4/README.md)):
+  - La4 on all 10 tasks solved 1 (shadow 1);
+  - La8 solved 0 (shadow 1), with 3 preemptions, so the rule excludes it;
+  - **n = 2 stays the proposal.**
+
+  aggregate throughput stays near 216–238 tok/s from n = 2 to n = 8, while the per-request rate falls from 129 to 69 tok/s.
 
 ### b.3 code and prompt hashes
 

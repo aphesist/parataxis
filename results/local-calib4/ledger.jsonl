@@ -1,0 +1,3 @@
+{"cloud": "COMMUNITY", "cost_per_hr": 0.69, "event": "created", "image": "vllm/vllm-openai:v0.33.0", "max_hours": 1.5, "name": "parataxis-calib-20261113T092601", "pod": "m214yezt6pgalg", "t": 1794561963.302}
+{"event": "ready", "pod": "m214yezt6pgalg", "ready_s": 495.5, "running_s": 0.3, "t": 1794562458.84}
+{"event": "terminated", "pod": "m214yezt6pgalg", "reason": "done", "t": 1794564965.368}
