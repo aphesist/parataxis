@@ -1,0 +1,84 @@
+{
+ "checks": {
+  "long": {
+   "aggregate_tok_s": 287.6,
+   "failed": 0,
+   "n": 8,
+   "pass": true,
+   "per_stream_tok_s": 48.7,
+   "preemptions": 0.0,
+   "prompt_tokens": 14569,
+   "wall_s": 28.48
+  },
+  "models": {
+   "pass": true,
+   "status": 200,
+   "status_without_key": 401
+  },
+  "prefix": {
+   "hits": 8000.0,
+   "note": "",
+   "pass": true
+  },
+  "sanity": {
+   "completion_tokens": 18,
+   "error": null,
+   "finish": "stop",
+   "pass": true,
+   "printable": 1.0
+  },
+  "sweep": {
+   "mtp_acceptance": 0.714,
+   "mtp_accepted": 10826.0,
+   "mtp_drafted": 15156.0,
+   "mtp_on": true,
+   "pass": true,
+   "rows": [
+    {
+     "aggregate_tok_s": 116.4,
+     "failed": 0,
+     "n": 1,
+     "per_stream_tok_s": 116.4,
+     "prompt_tokens": 24,
+     "wall_s": 4.4
+    },
+    {
+     "aggregate_tok_s": 247.7,
+     "failed": 0,
+     "n": 2,
+     "per_stream_tok_s": 124.8,
+     "prompt_tokens": 24,
+     "wall_s": 4.13
+    },
+    {
+     "aggregate_tok_s": 367.0,
+     "failed": 0,
+     "n": 4,
+     "per_stream_tok_s": 114.3,
+     "prompt_tokens": 24,
+     "wall_s": 5.58
+    },
+    {
+     "aggregate_tok_s": 848.9,
+     "failed": 0,
+     "n": 8,
+     "per_stream_tok_s": 110.4,
+     "prompt_tokens": 24,
+     "wall_s": 4.82
+    },
+    {
+     "aggregate_tok_s": 916.7,
+     "failed": 0,
+     "n": 16,
+     "per_stream_tok_s": 90.5,
+     "prompt_tokens": 25,
+     "wall_s": 8.94
+    }
+   ]
+  }
+ },
+ "endpoint_kind": "runpod-proxy",
+ "failed": [],
+ "pass": true,
+ "t": 1794532919
+}
