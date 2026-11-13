@@ -96,3 +96,12 @@ def test_cli_create_prints_no_key(dirs, capsys):
         assert pod.key_path(pid, dirs["pod_dir"]).read_text() not in printed
         assert pod.main(["--api", rp_fake.url, "--ledger", str(dirs["ledger"]), "--pod-dir", str(dirs["pod_dir"]),
                          "terminate", "--pod", pid]) == 0
+
+
+def test_window_check_sizes_prompts_and_passes_on_the_fake():
+    from parataxis.smoke import run_window_check
+
+    with FakeVLLM(lambda m, msgs, n: CODE, key="k", model=pod.SERVED_NAME) as vl:
+        out = run_window_check(vl.url, "k", single_tokens=4000, lanes=3, lane_tokens=1500, out_tokens=16)
+    assert out["pass"] and out["lanes"]["n"] == 3
+    assert 3000 < out["single"]["prompt_tokens"] <= 4000 and 1000 < out["lanes"]["prompt_tokens"] <= 1500

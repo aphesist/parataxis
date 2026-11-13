@@ -128,3 +128,31 @@ if __name__ == "__main__":  # pragma: no cover
     import sys
 
     print(json.dumps(run_smoke(sys.argv[1], os.environ["PARATAXIS_VLLM_KEY"]), indent=1))
+
+
+def run_window_check(url: str, key: str, *, single_tokens: int = 80_000, lanes: int = 8, lane_tokens: int = 22_000,
+                     out_tokens: int = 1024) -> dict[str, Any]:
+    """The max_model_len re-check: one ~``single_tokens`` prompt alone, then ``lanes`` prompts of
+    ~``lane_tokens`` at once, each with ``out_tokens`` of output. Prompts are sized with the server's
+    own tokenizer (/tokenize). Pass = no failed request and no preemption in either part."""
+    from .lanes import LOCAL_MODEL
+    from contraprova.interfaces import Message
+
+    client = VLLMClient(url, key=key, served_model=SERVED_NAME, max_retries=1)
+    unit = client.count_tokens(model=LOCAL_MODEL, system="", messages=[Message("user", FILLER * 100)]) / 100
+
+    def prompt(i: int, tokens: int) -> str:
+        return f"Stream {i}. " + FILLER * max(1, int((tokens - 200) / unit)) + "\nSummarise the text above in one line."
+
+    out: dict[str, Any] = {"tokens_per_filler": round(unit, 2)}
+    before = metrics(url, key)
+    single = _parallel(client, [prompt(0, single_tokens)], out_tokens, True)
+    mid = metrics(url, key)
+    many = _parallel(client, [prompt(i, lane_tokens) for i in range(lanes)], out_tokens, True)
+    after = metrics(url, key)
+    pre1 = _delta(mid, before, "vllm:num_preemptions_total", "vllm:num_preemptions")
+    pre2 = _delta(after, mid, "vllm:num_preemptions_total", "vllm:num_preemptions")
+    out["single"] = {**single, "preemptions": pre1, "pass": single["failed"] == 0 and not pre1}
+    out["lanes"] = {**many, "preemptions": pre2, "pass": many["failed"] == 0 and not pre2}
+    out["pass"] = out["single"]["pass"] and out["lanes"]["pass"]
+    return out

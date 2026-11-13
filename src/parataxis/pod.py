@@ -361,7 +361,7 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--mtp-method", default="qwen3_5_mtp")
     c.add_argument("--max-model-len", type=int, default=32768)
     c.add_argument("--disk-gb", type=int, default=80)
-    for name in ("wait", "terminate", "watchdog", "exec", "smoke"):
+    for name in ("wait", "terminate", "watchdog", "exec", "smoke", "window"):
         p = sub.add_parser(name)
         p.add_argument("--pod", required=True)
         if name == "watchdog":
@@ -370,8 +370,11 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("--cap-usd", type=float, default=DEFAULT_CAP_USD)
         if name == "wait":
             p.add_argument("--timeout-s", type=float, default=2400)
-        if name == "smoke":
+        if name in ("smoke", "window"):
             p.add_argument("--out", type=Path, required=True)
+        if name == "window":
+            p.add_argument("--single-tokens", type=int, default=80_000)
+            p.add_argument("--lane-tokens", type=int, default=22_000)
         if name == "exec":
             p.add_argument("command", nargs=argparse.REMAINDER)
     sub.add_parser("reap")
@@ -404,6 +407,17 @@ def main(argv: list[str] | None = None) -> int:
         a.out.parent.mkdir(parents=True, exist_ok=True)
         a.out.write_text(json.dumps(out, indent=1, sort_keys=True) + "\n")
         print(json.dumps({"pass": out["pass"], "failed": out["failed"]}))
+        return 0 if out["pass"] else 4
+    elif a.cmd == "window":
+        from .smoke import run_window_check
+
+        env = child_env(a.pod, url=a.url, pod_dir=a.pod_dir)
+        out = run_window_check(env["PARATAXIS_VLLM_URL"], env["PARATAXIS_VLLM_KEY"], single_tokens=a.single_tokens,
+                               lane_tokens=a.lane_tokens)
+        a.out.parent.mkdir(parents=True, exist_ok=True)
+        a.out.write_text(json.dumps(out, indent=1, sort_keys=True) + "\n")
+        print(json.dumps({"pass": out["pass"], "single": out["single"]["prompt_tokens"],
+                          "lanes": out["lanes"]["prompt_tokens"]}))
         return 0 if out["pass"] else 4
     elif a.cmd == "reap":
         print(json.dumps({"terminated": reap(rp, ledger=a.ledger)}))

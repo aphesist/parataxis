@@ -38,6 +38,9 @@ pod watchdog --pod "$pid" --idle-minutes 15 --max-hours "$MAX_HOURS" --cap-usd "
 wd=$!
 pod wait --pod "$pid" --timeout-s 2400
 pod smoke --pod "$pid" --out "$OUT/smoke-${MAX_MODEL_LEN}.json" || { echo "smoke failed at max_model_len $MAX_MODEL_LEN"; exit 4; }
+# the approved re-check of max_model_len: one ~80K prompt alone, then 8 lanes of ~22K at once, no preemption
+pod window --pod "$pid" --out "$OUT/window-${MAX_MODEL_LEN}.json" --single-tokens "${WINDOW_SINGLE:-80000}" \
+  || { echo "window check failed at max_model_len $MAX_MODEL_LEN: restart with a smaller MAX_MODEL_LEN"; exit 5; }
 pod exec --pod "$pid" -- sh -c 'python scripts/fit_symbol_lanes.py --offline --count-local "$PARATAXIS_VLLM_URL" --out '"$OUT"' >/dev/null' \
   || echo "count-local recount failed (continuing)"
 
