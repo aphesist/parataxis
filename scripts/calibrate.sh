@@ -25,6 +25,7 @@ COMMON=(--benchmark swepro --split lanes-probe --lanes-splits results/swepro-lan
         --client parataxis.local:LocalRoleClients --no-log-contents --max-image-gb 26 --max-lanes 8)
 
 pid=$(pod create --name "$NAME" --max-hours "$MAX_HOURS" --cap-usd "$GPU_CAP" --max-model-len "$MAX_MODEL_LEN" \
+      --assumed-rate "${ASSUMED_RATE:-0.69}" \
       | python -c 'import json,sys; print(json.load(sys.stdin)["pod"])')
 start=$(date +%s)
 wd=""

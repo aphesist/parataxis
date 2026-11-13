@@ -361,6 +361,8 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--mtp-method", default="qwen3_5_mtp")
     c.add_argument("--max-model-len", type=int, default=32768)
     c.add_argument("--disk-gb", type=int, default=80)
+    c.add_argument("--assumed-rate", type=float, default=0.99,
+                   help="$/h assumed before the pod reports its price (RunPod catalog: 5090 community $0.69)")
     for name in ("wait", "terminate", "watchdog", "exec", "smoke", "window"):
         p = sub.add_parser(name)
         p.add_argument("--pod", required=True)
@@ -385,7 +387,7 @@ def main(argv: list[str] | None = None) -> int:
         pid = create(rp, a.name, max_hours=a.max_hours, cap_usd=a.cap_usd, cloud=a.cloud, image=a.image,
                      serve_args=vllm_args(a.model, max_model_len=a.max_model_len, mtp_tokens=a.mtp_tokens or None,
                                           mtp_method=a.mtp_method),
-                     disk_gb=a.disk_gb, ledger=a.ledger, pod_dir=a.pod_dir)
+                     disk_gb=a.disk_gb, ledger=a.ledger, pod_dir=a.pod_dir, assumed_rate=a.assumed_rate)
         print(json.dumps({"pod": pid, "endpoint": a.url or endpoint(pid)}))
     elif a.cmd == "wait":
         print(json.dumps(wait_ready(rp, a.pod, url=a.url, timeout_s=a.timeout_s, ledger=a.ledger, pod_dir=a.pod_dir)))
