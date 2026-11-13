@@ -1,0 +1,131 @@
+{
+ "arms": [
+  "La",
+  "La-shadow",
+  "La-first"
+ ],
+ "blame_rules": {
+  "1": 11,
+  "2": 2,
+  "3": 4
+ },
+ "capped": {
+  "L1": 0,
+  "La": 0,
+  "Lb": 0
+ },
+ "coordination": {
+  "La": {
+   "ignored_correction": 11,
+   "interface_mismatch": 4,
+   "overwrite": 12,
+   "scope_violation": 10,
+   "unattributable_failure": 4,
+   "unlisted_unit": 5,
+   "wasted_lane": 21
+  }
+ },
+ "coordination_La_vs_Lb": null,
+ "cost": {
+  "planner_usd": 0.0
+ },
+ "lane_counts": {
+  "6": 1,
+  "7": 3,
+  "8": 6
+ },
+ "log": "runs/calib3/La2.jsonl",
+ "primary": {
+  "a": "La",
+  "a_only": 1,
+  "a_solved": 2,
+  "b": "La-shadow",
+  "b_only": 0,
+  "b_solved": 1,
+  "ci_points": [
+   0.0,
+   30.0
+  ],
+  "diff_points": 10.0,
+  "n": 10,
+  "p_mcnemar": 1.0
+ },
+ "secondary": {
+  "La_vs_L1": null,
+  "Lb_vs_La": null,
+  "local_La_vs_api_La": null
+ },
+ "seed": 20261113,
+ "solve_rates": {
+  "La": {
+   "n": 10,
+   "solved": 2,
+   "wilson95": [
+    0.057,
+    0.51
+   ]
+  },
+  "La-first": {
+   "n": 10,
+   "solved": 1,
+   "wilson95": [
+    0.018,
+    0.404
+   ]
+  },
+  "La-shadow": {
+   "n": 10,
+   "solved": 1,
+   "wilson95": [
+    0.018,
+    0.404
+   ]
+  }
+ },
+ "tasks": 10,
+ "throughput": {
+  "La": {
+   "aggregate_tok_s": {
+    "iqr": [
+     189.12,
+     239.61
+    ],
+    "median": 215.76,
+    "n": 10
+   },
+   "per_request_tok_s": {
+    "iqr": [
+     97.77,
+     146.42
+    ],
+    "median": 128.56,
+    "n": 109
+   },
+   "tail_share": {
+    "iqr": [
+     0.23,
+     0.53
+    ],
+    "median": 0.47,
+    "n": 10
+   }
+  }
+ },
+ "tok_s": {
+  "La": {
+   "raw_tok_s": [
+    180.06,
+    150.24,
+    209.24
+   ],
+   "tasks": 10,
+   "test_gated_tok_s": [
+    5.48,
+    0.0,
+    17.9
+   ],
+   "wall_s_total": 485.2
+  }
+ },
+ "token_count": "local tokenizer (vLLM /tokenize)"
+}
