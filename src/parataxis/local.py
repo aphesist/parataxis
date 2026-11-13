@@ -19,6 +19,7 @@ Run with contraprova's harness through ``python -m parataxis.run ... --client pa
 
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import random
@@ -150,13 +151,22 @@ class VLLMClient:
         body = self.build_body(model=model, system=system, messages=messages, max_tokens=max_tokens)
         t_start = time.time()
         t0 = time.monotonic()
-        resp = self._request("/v1/chat/completions", body)
-        try:
-            text, finish, usage, rid = self.read_stream(resp)
-        finally:
-            close = getattr(resp, "close", None)
-            if close:
-                close()
+        stream_retries = 0
+        while True:
+            # a connection dropped mid-stream (seen through RunPod's proxy) loses the reply: send it again
+            resp = self._request("/v1/chat/completions", body)
+            try:
+                text, finish, usage, rid = self.read_stream(resp)
+                break
+            except (ConnectionError, TimeoutError, OSError, http.client.HTTPException) as exc:
+                if stream_retries >= self.max_retries:
+                    raise LocalError(f"stream failed {stream_retries + 1} times: {type(exc).__name__}") from None
+                stream_retries += 1
+                self._sleep(self.backoff_base * (2 ** (stream_retries - 1)))
+            finally:
+                close = getattr(resp, "close", None)
+                if close:
+                    close()
         wall = time.monotonic() - t0
         prompt = int(usage.get("prompt_tokens") or 0)
         cached = int(((usage.get("prompt_tokens_details") or {}).get("cached_tokens")) or 0)
@@ -164,7 +174,7 @@ class VLLMClient:
         payload = usage_payload({"input_tokens": max(prompt - cached, 0), "cache_read_input_tokens": cached,
                                  "output_tokens": out}, model, **dict(tags or {}))
         payload.update({"engine": "vllm", "wall_s": round(wall, 3), "t_start": round(t_start, 3),
-                        "t_end": round(t_start + wall, 3)})
+                        "t_end": round(t_start + wall, 3), **({"stream_retries": stream_retries} if stream_retries else {})})
         stop = {"length": "max_tokens", "stop": "end_turn"}.get(finish or "", finish or "end_turn")
         return Completion(text=text, model=model, usage=payload, stop_reason=stop, request_id=rid)
 

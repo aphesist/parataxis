@@ -158,3 +158,30 @@ def test_analysis_reads_timings_tok_s_and_the_primary(tmp_path, exercises, keyed
     assert res["tok_s"]["La"]["tasks"] == 3 and res["tok_s"]["La"]["test_gated_tok_s"][0] > 0
     assert res["throughput"]["La"]["aggregate_tok_s"]["n"] == 3
     assert res["token_count"].startswith("estimated")
+
+
+def test_a_stream_dropped_midway_is_sent_again(keyed):
+    class Drop:
+        def __init__(self, fail):
+            self.fail = fail
+
+        def __iter__(self):
+            yield b'data: {"id":"x","choices":[{"delta":{"content":"par"}}]}\n'
+            if self.fail:
+                raise ConnectionResetError(104, "Connection reset by peer")
+            yield b'data: {"id":"x","choices":[{"delta":{"content":"tial"},"finish_reason":"stop"}]}\n'
+            yield b'data: {"id":"x","choices":[],"usage":{"prompt_tokens":5,"completion_tokens":2}}\n'
+            yield b"data: [DONE]\n"
+
+        def close(self):
+            pass
+
+    calls = []
+
+    def opener(req, timeout):
+        calls.append(1)
+        return Drop(fail=len(calls) == 1)
+
+    c = VLLMClient("http://x", opener=opener, sleep=lambda s: None)
+    done = c.complete(model=LOCAL_MODEL, system="", messages=[Message("user", "hi")], max_tokens=10)
+    assert done.text == "partial" and len(calls) == 2 and done.usage["stream_retries"] == 1
