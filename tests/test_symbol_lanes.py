@@ -122,3 +122,29 @@ def test_planner_sees_units_of_large_files_only_in_symbol_mode(tmp_path):
     off = _planner_context(h, ex, ex.test_split, 8, False)
     assert "lib/m.py::f3" in on and "Units (below file level)" in on and '"units"' in on
     assert "lib/m.py::f3" not in off and "Units (below file level)" not in off
+
+
+def test_a_logged_plan_is_replayed_at_zero_tokens(tmp_path):
+    from contraprova.pricing import DEFAULT_TABLE, PRICE_TABLES, request_cost
+
+    from parataxis.local import PlanReplay
+
+    h1, ex, ok = _run(tmp_path, stray=False)
+    assert ok
+    first = events_of(h1, "lane.planned")[0]
+
+    class NoPlanner(Scripted):
+        def _worker_text(self, tid, model, prompt):
+            assert "## Request: lane plan" not in prompt, "the planner must not be called on a replay"
+            return super()._worker_text(tid, model, prompt)
+
+    exercises = {IID: ex}
+    cfg = LaneConfig(ladder=LOCAL_LADDER, max_lanes=8, symbol_lanes=True)
+    client = PlanReplay(NoPlanner(exercises), [str(tmp_path / "log.jsonl")])
+    h2, _, _ = harness(tmp_path, exercises, client=client, cfg=cfg, name="replay.jsonl")
+    assert h2.run_task("La", ex, ex.test_split, "lanes-probe")
+    second = events_of(h2, "lane.planned")[0]
+    assert second["plan_sha256"] == first["plan_sha256"] and client.replayed == 1
+    planner = [u for u in events_of(h2, "usage.recorded") if u.get("lane_role") == "planner"]
+    assert planner and planner[0]["replay"] is True
+    assert request_cost(planner[0], PRICE_TABLES[DEFAULT_TABLE]) == 0.0

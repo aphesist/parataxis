@@ -183,8 +183,9 @@ class VLLMClient:
 
 class LocalRoleClients:
     """Local models to :class:`VLLMClient`; any other model to the Claude API client for the request's
-    role (``tags["role"]``), sharing one dollar budget (``PARATAXIS_API_BUDGET_USD``, default $2.5; the
-    harness's own budget guard checks the log before every request as well)."""
+    role (``tags["role"]``), sharing one dollar budget (``PARATAXIS_API_BUDGET_USD``, default $3, the
+    pre-registered cap; the harness's own budget guard checks the log before every request as well).
+    With ``PARATAXIS_PLAN_REPLAY`` set, plans logged there are replayed (:class:`PlanReplay`)."""
 
     def __init__(self, local: Any | None = None, cloud: Any | None = None):
         self.local = local or VLLMClient()
@@ -192,7 +193,9 @@ class LocalRoleClients:
             from contraprova.harness.run import anthropic_role_clients
             from contraprova.llm import Budget
 
-            cloud = anthropic_role_clients(Budget(float(os.environ.get(API_BUDGET_ENV, "2.5"))))
+            cloud = anthropic_role_clients(Budget(float(os.environ.get(API_BUDGET_ENV, "3.0"))))
+            if os.environ.get(REPLAY_ENV):
+                cloud = PlanReplay(cloud)  # plans logged by an earlier run are replayed, not re-bought
         self.cloud = cloud
 
     def complete(self, *, model: str, system: str, messages: Sequence[Message], max_tokens: int,
@@ -206,3 +209,75 @@ class LocalRoleClients:
             return self.local.count_tokens(model=model, system=system, messages=messages)
         cloud = getattr(self.cloud, "clients", {}).get("worker", self.cloud)
         return cloud.count_tokens(model=model, system=system, messages=messages)
+
+
+# ------------------------------------------------------------------ plan replay
+
+REPLAY_ENV = "PARATAXIS_PLAN_REPLAY"  # comma-separated logs whose plans are replayed
+
+
+def logged_plans(paths: Sequence[str]) -> dict[str, str]:
+    """exercise id -> the planner reply that reproduces the plan logged for it (the latest wins):
+    the lanes of ``lane.planned`` and the planner's frozen interfaces of ``interface.frozen``, in
+    the planner's JSON schema. A plan that fell back to a single lane is not replayed."""
+    from .lanes import Interface, Lane, LanePlan, plan_reply
+
+    planned: dict[str, dict] = {}
+    frozen: dict[str, list] = {}
+    for path in paths:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                e = json.loads(line)
+                p = e.get("payload", {})
+                if e.get("type") == "lane.planned" and not p.get("fallback"):
+                    planned[p["task_id"]] = p
+                elif e.get("type") == "interface.frozen":
+                    frozen[p["task_id"]] = [x for x in p.get("entries", []) if x.get("source") == "planner"]
+    out = {}
+    for tid, p in planned.items():
+        lanes = tuple(Lane(d["lane_id"], tuple(d.get("allowed", ())), tuple(d.get("new_files", ())), d.get("goal", ""),
+                           tuple(d.get("symbols", ())), tuple(d.get("exports", ())), tuple(d.get("imports", ())),
+                           tuple(d.get("tests", ())), tuple(d.get("units", ()))) for d in p["lanes"])
+        ifaces = tuple(Interface(x["symbol"], x.get("signature", ""), x.get("path"), x.get("owner"))
+                       for x in frozen.get(tid, []))
+        reply = plan_reply(LanePlan(lanes, ifaces, p.get("rationale", "")))
+        if any(d.get("units") for d in p["lanes"]):  # whole-file entries must not repeat unit-split files
+            obj = json.loads(reply.split("```json\n", 1)[1].rsplit("```", 1)[0])
+            for d, ln in zip(obj["lanes"], lanes):
+                d["files"] = [f for f in d["files"] if f not in ln.unit_paths]
+                d["units"] = list(ln.units)
+            reply = "```json\n" + json.dumps(obj, indent=1) + "\n```\n"
+        out[tid.split(":", 1)[1]] = reply
+    return out
+
+
+class PlanReplay:
+    """Wraps a client: a planner request (role orchestrator, ``lane_role`` planner) for a task whose
+    plan was logged gets that plan back with zero tokens (``replay: true`` on its usage record), so
+    a plan is paid for once and shared, by Lb-text with La and across the calibration runs. Every
+    other request, and a task with no logged plan, goes to the wrapped client."""
+
+    def __init__(self, inner: Any, paths: Sequence[str] | None = None):
+        self.inner = inner
+        paths = paths if paths is not None else [p for p in os.environ.get(REPLAY_ENV, "").split(",") if p]
+        self.plans = logged_plans(paths) if paths else {}
+        self.replayed = 0
+
+    def complete(self, *, model: str, system: str, messages: Sequence[Message], max_tokens: int,
+                 effort: str | None = None, tags: Mapping[str, Any] | None = None) -> Completion:
+        t = dict(tags or {})
+        ex_id = str(t.get("task_id", "")).split(":", 1)[-1]
+        if t.get("role") == "orchestrator" and t.get("lane_role") == "planner" and len(messages) == 1 \
+                and ex_id in self.plans:
+            self.replayed += 1
+            usage = usage_payload({"input_tokens": 0, "output_tokens": 0}, model, **t)
+            usage["replay"] = True
+            return Completion(text=self.plans[ex_id], model=model, usage=usage, request_id=f"replay-{ex_id[:40]}")
+        return self.inner.complete(model=model, system=system, messages=messages, max_tokens=max_tokens,
+                                   effort=effort, tags=tags)
+
+    def count_tokens(self, **kw) -> int:
+        return self.inner.count_tokens(**kw)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.inner, name)
