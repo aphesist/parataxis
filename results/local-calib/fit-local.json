@@ -1,0 +1,2295 @@
+{
+ "summary": {
+  "tasks": 37,
+  "counted": true,
+  "count_model": "local (vLLM /tokenize)",
+  "target_tokens": 24000,
+  "max_lanes": 8,
+  "board_tokens": 400,
+  "split_class_lines": 120,
+  "calibration": {
+   "median": 1.094,
+   "p90": 1.197,
+   "max": 1.242,
+   "min": 0.941
+  },
+  "shared_tokens": {
+   "median": 5754,
+   "p90": 9620.4,
+   "max": 11973,
+   "min": 2207
+  },
+  "touched_units": {
+   "median": 6,
+   "p90": 14.2,
+   "max": 20,
+   "min": 1
+  },
+  "file_lanes": {
+   "k": {
+    "median": 4,
+    "p90": 6.4,
+    "max": 11,
+    "min": 1
+   },
+   "max_prompt": {
+    "median": 15782,
+    "p90": 26689.4,
+    "max": 31176,
+    "min": 4709
+   },
+   "largest_code_share": {
+    "median": 0.598,
+    "p90": 0.935,
+    "max": 1.0,
+    "min": 0.206
+   },
+   "fit": {
+    "16000": "19/37",
+    "24000": "30/37",
+    "32000": "37/37"
+   }
+  },
+  "symbol_lanes": {
+   "k": {
+    "median": 6,
+    "p90": 8.0,
+    "max": 8,
+    "min": 1
+   },
+   "k_histogram": {
+    "1": 1,
+    "2": 4,
+    "3": 1,
+    "4": 5,
+    "5": 4,
+    "6": 5,
+    "7": 5,
+    "8": 12
+   },
+   "max_prompt": {
+    "median": 9286,
+    "p90": 12567.8,
+    "max": 14789,
+    "min": 2721
+   },
+   "all_lane_prompts": {
+    "median": 7550,
+    "p90": 12094.4,
+    "max": 14789,
+    "min": 2252
+   },
+   "largest_code_share": {
+    "median": 0.424,
+    "p90": 0.785,
+    "max": 1.0,
+    "min": 0.218
+   },
+   "fit": {
+    "16000": "37/37",
+    "24000": "37/37",
+    "32000": "37/37"
+   }
+  },
+  "cover_lanes": {
+   "k": {
+    "median": 8,
+    "p90": 8.0,
+    "max": 8,
+    "min": 8
+   },
+   "max_prompt": {
+    "median": 12470,
+    "p90": 16828.0,
+    "max": 18085,
+    "min": 3148
+   },
+   "largest_code_share": {
+    "median": 0.147,
+    "p90": 0.172,
+    "max": 0.323,
+    "min": 0.129
+   },
+   "fit": {
+    "16000": "30/37",
+    "24000": "37/37",
+    "32000": "37/37"
+   }
+  }
+ },
+ "tasks": [
+  {
+   "exercise_id": "instance_element-hq__element-web-aec454dd6feeb93000380523cbb0b3681c0275fd-vnan",
+   "repo": "element-hq/element-web",
+   "language": "javascript",
+   "calibration": 1.0379,
+   "shared_tokens": 6789,
+   "d_worker_exact": 41628,
+   "scope_files": 5,
+   "created_files": [
+    "src/stores/UserProfilesStore.ts",
+    "src/utils/LruCache.ts"
+   ],
+   "scope_file_tokens": 36232,
+   "touched_files": 5,
+   "touched_units": 6,
+   "file_lanes": {
+    "k": 5,
+    "max_prompt": 26571,
+    "largest_code_share": 0.886
+   },
+   "symbol_lanes": {
+    "k": 6,
+    "prompts": [
+     7603,
+     8008,
+     9854,
+     7606,
+     6789,
+     6789
+    ],
+    "max_prompt": 9854,
+    "largest_code_share": 0.495,
+    "lanes": [
+     [
+      "src/hooks/usePermalinkMember.ts::usePermalinkMember"
+     ],
+     [
+      "src/contexts/SDKContext.ts::SdkContextClass"
+     ],
+     [
+      "src/components/structures/MatrixChat.tsx::MatrixChat.onLoggedOut"
+     ],
+     [
+      "src/contexts/SDKContext.ts::SdkContextClass.accountPasswordStore"
+     ],
+     [
+      "src/stores/UserProfilesStore.ts::<new file>"
+     ],
+     [
+      "src/utils/LruCache.ts::<new file>"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 72,
+    "max_prompt": 12731,
+    "largest_code_share": 0.159
+   }
+  },
+  {
+   "exercise_id": "instance_NodeBB__NodeBB-04998908ba6721d64eba79ae3b65a351dcfbc5b5-vnan",
+   "repo": "NodeBB/NodeBB",
+   "language": "javascript",
+   "calibration": 1.1868,
+   "shared_tokens": 3923,
+   "d_worker_exact": 39532,
+   "scope_files": 11,
+   "created_files": [],
+   "scope_file_tokens": 36823,
+   "touched_files": 4,
+   "touched_units": 6,
+   "file_lanes": {
+    "k": 4,
+    "max_prompt": 5880,
+    "largest_code_share": 0.362
+   },
+   "symbol_lanes": {
+    "k": 6,
+    "prompts": [
+     5724,
+     5182,
+     4708,
+     4864,
+     4329,
+     4267
+    ],
+    "max_prompt": 5724,
+    "largest_code_share": 0.362,
+    "lanes": [
+     [
+      "src/database/postgres/main.js::module.exports"
+     ],
+     [
+      "src/database/mongo/main.js::module.exports"
+     ],
+     [
+      "src/database/redis/main.js::module.exports"
+     ],
+     [
+      "src/user/email.js::UserEmail.sendValidationEmail"
+     ],
+     [
+      "src/user/email.js::UserEmail.canSendValidation"
+     ],
+     [
+      "src/user/email.js::UserEmail.getValidationExpiry"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 49,
+    "max_prompt": 8034,
+    "largest_code_share": 0.133
+   }
+  },
+  {
+   "exercise_id": "instance_internetarchive__openlibrary-6fdbbeee4c0a7e976ff3e46fb1d36f4eb110c428-v08d8e8889ec945ab821fb156c04c7d2e2810debb",
+   "repo": "internetarchive/openlibrary",
+   "language": "python",
+   "calibration": 1.0439,
+   "shared_tokens": 5387,
+   "d_worker_exact": 58464,
+   "scope_files": 6,
+   "created_files": [],
+   "scope_file_tokens": 56132,
+   "touched_files": 1,
+   "touched_units": 2,
+   "file_lanes": {
+    "k": 1,
+    "max_prompt": 12539,
+    "largest_code_share": 1.0
+   },
+   "symbol_lanes": {
+    "k": 2,
+    "prompts": [
+     6675,
+     6149
+    ],
+    "max_prompt": 6675,
+    "largest_code_share": 0.983,
+    "lanes": [
+     [
+      "openlibrary/plugins/openlibrary/lists.py::ListRecord"
+     ],
+     [
+      "openlibrary/plugins/openlibrary/lists.py::SeedDict"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 338,
+    "max_prompt": 12406,
+    "largest_code_share": 0.153
+   }
+  },
+  {
+   "exercise_id": "instance_ansible__ansible-949c503f2ef4b2c5d668af0492a5c0db1ab86140-v0f01c69f1e2528b935359cfe578530722bca2c59",
+   "repo": "ansible/ansible",
+   "language": "python",
+   "calibration": 0.9924,
+   "shared_tokens": 7060,
+   "d_worker_exact": 55824,
+   "scope_files": 4,
+   "created_files": [],
+   "scope_file_tokens": 53782,
+   "touched_files": 3,
+   "touched_units": 5,
+   "file_lanes": {
+    "k": 3,
+    "max_prompt": 26972,
+    "largest_code_share": 0.702
+   },
+   "symbol_lanes": {
+    "k": 5,
+    "prompts": [
+     9454,
+     10197,
+     8049,
+     7949,
+     8087
+    ],
+    "max_prompt": 10197,
+    "largest_code_share": 0.501,
+    "lanes": [
+     [
+      "lib/ansible/config/manager.py::ConfigManager.get_config_value_and_origin"
+     ],
+     [
+      "lib/ansible/cli/galaxy.py::GalaxyCLI.run"
+     ],
+     [
+      "lib/ansible/config/manager.py::ConfigManager.__init__"
+     ],
+     [
+      "lib/ansible/config/manager.py::_get_entry"
+     ],
+     [
+      "lib/ansible/errors/__init__.py::AnsibleOptionsError"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 136,
+    "max_prompt": 13432,
+    "largest_code_share": 0.148
+   }
+  },
+  {
+   "exercise_id": "instance_element-hq__element-web-fe14847bb9bb07cab1b9c6c54335ff22ca5e516a-vnan",
+   "repo": "element-hq/element-web",
+   "language": "javascript",
+   "calibration": 1.0866,
+   "shared_tokens": 5250,
+   "d_worker_exact": 14609,
+   "scope_files": 9,
+   "created_files": [
+    "src/voice-broadcast/models/VoiceBroadcastRecording.ts",
+    "src/voice-broadcast/models/index.ts",
+    "src/voice-broadcast/stores/VoiceBroadcastRecordingsStore.ts",
+    "src/voice-broadcast/stores/index.ts",
+    "src/voice-broadcast/utils/startNewVoiceBroadcastRecording.ts"
+   ],
+   "scope_file_tokens": 9719,
+   "touched_files": 9,
+   "touched_units": 10,
+   "file_lanes": {
+    "k": 9,
+    "max_prompt": 9998,
+    "largest_code_share": 0.843
+   },
+   "symbol_lanes": {
+    "k": 8,
+    "prompts": [
+     7550,
+     5831,
+     5418,
+     5548,
+     5534,
+     5250,
+     5250,
+     5250
+    ],
+    "max_prompt": 7550,
+    "largest_code_share": 0.744,
+    "lanes": [
+     [
+      "src/components/views/rooms/MessageComposer.tsx::MessageComposer.render"
+     ],
+     [
+      "src/voice-broadcast/components/VoiceBroadcastBody.tsx::VoiceBroadcastBody"
+     ],
+     [
+      "src/voice-broadcast/utils/index.ts::L1-17"
+     ],
+     [
+      "src/voice-broadcast/index.ts::VoiceBroadcastInfoEventContent"
+     ],
+     [
+      "src/voice-broadcast/index.ts::VoiceBroadcastInfoState"
+     ],
+     [
+      "src/voice-broadcast/models/VoiceBroadcastRecording.ts::<new file>",
+      "src/voice-broadcast/stores/index.ts::<new file>"
+     ],
+     [
+      "src/voice-broadcast/models/index.ts::<new file>",
+      "src/voice-broadcast/utils/startNewVoiceBroadcastRecording.ts::<new file>"
+     ],
+     [
+      "src/voice-broadcast/stores/VoiceBroadcastRecordingsStore.ts::<new file>"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 18,
+    "max_prompt": 7550,
+    "largest_code_share": 0.323
+   }
+  },
+  {
+   "exercise_id": "instance_ansible__ansible-d2f80991180337e2be23d6883064a67dcbaeb662-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5",
+   "repo": "ansible/ansible",
+   "language": "python",
+   "calibration": 1.0433,
+   "shared_tokens": 5860,
+   "d_worker_exact": 35676,
+   "scope_files": 4,
+   "created_files": [
+    "changelogs/fragments/collection-build-manifest.yml"
+   ],
+   "scope_file_tokens": 31415,
+   "touched_files": 4,
+   "touched_units": 7,
+   "file_lanes": {
+    "k": 4,
+    "max_prompt": 21595,
+    "largest_code_share": 0.777
+   },
+   "symbol_lanes": {
+    "k": 7,
+    "prompts": [
+     8530,
+     6699,
+     8146,
+     7979,
+     6294,
+     7668,
+     5860
+    ],
+    "max_prompt": 8530,
+    "largest_code_share": 0.303,
+    "lanes": [
+     [
+      "lib/ansible/galaxy/collection/__init__.py::_build_files_manifest"
+     ],
+     [
+      "docs/docsite/rst/dev_guide/developing_collections_distributing.rst::L123-182"
+     ],
+     [
+      "lib/ansible/galaxy/collection/__init__.py::build_collection"
+     ],
+     [
+      "lib/ansible/galaxy/collection/__init__.py::install_src"
+     ],
+     [
+      "lib/ansible/galaxy/data/collections_galaxy_meta.yml::L65-110"
+     ],
+     [
+      "lib/ansible/galaxy/collection/__init__.py::PkgReq"
+     ],
+     [
+      "changelogs/fragments/collection-build-manifest.yml::<new file>"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 42,
+    "max_prompt": 10033,
+    "largest_code_share": 0.178
+   }
+  },
+  {
+   "exercise_id": "instance_qutebrowser__qutebrowser-bedc9f7fadf93f83d8dee95feeecb9922b6f063f-v2ef375ac784985212b1805e1d0431dc8f1b3c171",
+   "repo": "qutebrowser/qutebrowser",
+   "language": "python",
+   "calibration": 1.0643,
+   "shared_tokens": 11973,
+   "d_worker_exact": 48372,
+   "scope_files": 4,
+   "created_files": [],
+   "scope_file_tokens": 45945,
+   "touched_files": 4,
+   "touched_units": 6,
+   "file_lanes": {
+    "k": 4,
+    "max_prompt": 22658,
+    "largest_code_share": 0.373
+   },
+   "symbol_lanes": {
+    "k": 6,
+    "prompts": [
+     13909,
+     13734,
+     14126,
+     13329,
+     13310,
+     13408
+    ],
+    "max_prompt": 14126,
+    "largest_code_share": 0.314,
+    "lanes": [
+     [
+      "qutebrowser/utils/utils.py::interpolate_color"
+     ],
+     [
+      "qutebrowser/utils/utils.py::_get_color_percentage"
+     ],
+     [
+      "qutebrowser/browser/downloads.py::AbstractDownloadItem.get_status_color"
+     ],
+     [
+      "qutebrowser/mainwindow/tabbedbrowser.py::TabbedBrowser._on_load_finished"
+     ],
+     [
+      "qutebrowser/mainwindow/tabbedbrowser.py::TabbedBrowser._on_load_progress"
+     ],
+     [
+      "qutebrowser/utils/qtutils.py::qcolor_to_qsscolor"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 207,
+    "max_prompt": 18085,
+    "largest_code_share": 0.143
+   }
+  },
+  {
+   "exercise_id": "instance_internetarchive__openlibrary-7cbfb812ef0e1f9716e2d6e85d538a96fcb79d13-vfa6ff903cb27f336e17654595dd900fa943dcd91",
+   "repo": "internetarchive/openlibrary",
+   "language": "python",
+   "calibration": 1.0667,
+   "shared_tokens": 3699,
+   "d_worker_exact": 12933,
+   "scope_files": 5,
+   "created_files": [],
+   "scope_file_tokens": 9531,
+   "touched_files": 5,
+   "touched_units": 7,
+   "file_lanes": {
+    "k": 5,
+    "max_prompt": 7534,
+    "largest_code_share": 0.564
+   },
+   "symbol_lanes": {
+    "k": 7,
+    "prompts": [
+     4625,
+     4214,
+     4137,
+     4295,
+     3879,
+     3843,
+     4230
+    ],
+    "max_prompt": 4625,
+    "largest_code_share": 0.469,
+    "lanes": [
+     [
+      "openlibrary/plugins/openlibrary/js/patron-metadata/index.js::initPatronMetadata"
+     ],
+     [
+      "openlibrary/core/schema.sql::L1-51"
+     ],
+     [
+      "conf/openlibrary.yml::L145-189"
+     ],
+     [
+      "openlibrary/plugins/openlibrary/api.py::observations"
+     ],
+     [
+      "openlibrary/core/observations.py::post_observation"
+     ],
+     [
+      "openlibrary/core/observations.py::get_aspects"
+     ],
+     [
+      "openlibrary/plugins/openlibrary/api.py::aspects"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 21,
+    "max_prompt": 5011,
+    "largest_code_share": 0.154
+   }
+  },
+  {
+   "exercise_id": "instance_qutebrowser__qutebrowser-e5340c449f23608803c286da0563b62f58ba25b0-v059c6fdc75567943479b23ebca7c07b5e9a7f34c",
+   "repo": "qutebrowser/qutebrowser",
+   "language": "python",
+   "calibration": 1.0906,
+   "shared_tokens": 11469,
+   "d_worker_exact": 50495,
+   "scope_files": 7,
+   "created_files": [],
+   "scope_file_tokens": 48118,
+   "touched_files": 2,
+   "touched_units": 2,
+   "file_lanes": {
+    "k": 2,
+    "max_prompt": 15660,
+    "largest_code_share": 0.891
+   },
+   "symbol_lanes": {
+    "k": 2,
+    "prompts": [
+     12716,
+     12056
+    ],
+    "max_prompt": 12716,
+    "largest_code_share": 0.597,
+    "lanes": [
+     [
+      "qutebrowser/browser/webkit/network/networkmanager.py::NetworkManager.on_ssl_errors"
+     ],
+     [
+      "qutebrowser/browser/webkit/certificateerror.py::CertificateErrorWrapper"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 205,
+    "max_prompt": 17357,
+    "largest_code_share": 0.137
+   }
+  },
+  {
+   "exercise_id": "instance_qutebrowser__qutebrowser-de4a1c1a2839b5b49c3d4ce21d39de48d24e2091-v2ef375ac784985212b1805e1d0431dc8f1b3c171",
+   "repo": "qutebrowser/qutebrowser",
+   "language": "python",
+   "calibration": 1.1551,
+   "shared_tokens": 6753,
+   "d_worker_exact": 22731,
+   "scope_files": 4,
+   "created_files": [
+    "qutebrowser/config/qtargs.py"
+   ],
+   "scope_file_tokens": 17258,
+   "touched_files": 4,
+   "touched_units": 8,
+   "file_lanes": {
+    "k": 4,
+    "max_prompt": 11116,
+    "largest_code_share": 0.413
+   },
+   "symbol_lanes": {
+    "k": 8,
+    "prompts": [
+     8409,
+     8059,
+     8153,
+     7649,
+     7584,
+     7468,
+     8733,
+     6753
+    ],
+    "max_prompt": 8733,
+    "largest_code_share": 0.347,
+    "lanes": [
+     [
+      "qutebrowser/config/configinit.py::_qtwebengine_args"
+     ],
+     [
+      "qutebrowser/config/configinit.py::_darkmode_settings"
+     ],
+     [
+      "qutebrowser/app.py::Application"
+     ],
+     [
+      "qutebrowser/config/configinit.py::early_init"
+     ],
+     [
+      "qutebrowser/config/configinit.py::_init_envvars"
+     ],
+     [
+      "qutebrowser/config/configinit.py::qt_args"
+     ],
+     [
+      "scripts/dev/check_coverage.py::Message"
+     ],
+     [
+      "qutebrowser/config/qtargs.py::<new file>"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 30,
+    "max_prompt": 9866,
+    "largest_code_share": 0.151
+   }
+  },
+  {
+   "exercise_id": "instance_internetarchive__openlibrary-0a90f9f0256e4f933523e9842799e39f95ae29ce-v76304ecdb3a5954fcf13feb710e8c40fcf24b73c",
+   "repo": "internetarchive/openlibrary",
+   "language": "python",
+   "calibration": 1.0813,
+   "shared_tokens": 8259,
+   "d_worker_exact": 28390,
+   "scope_files": 3,
+   "created_files": [],
+   "scope_file_tokens": 23393,
+   "touched_files": 3,
+   "touched_units": 5,
+   "file_lanes": {
+    "k": 3,
+    "max_prompt": 18071,
+    "largest_code_share": 0.555
+   },
+   "symbol_lanes": {
+    "k": 5,
+    "prompts": [
+     9612,
+     10112,
+     10219,
+     8505,
+     8966
+    ],
+    "max_prompt": 10219,
+    "largest_code_share": 0.541,
+    "lanes": [
+     [
+      "openlibrary/plugins/importapi/code.py::ia_importapi.get_ia_record"
+     ],
+     [
+      "openlibrary/plugins/upstream/utils.py::get_publisher_and_place"
+     ],
+     [
+      "openlibrary/plugins/upstream/utils.py::get_isbn_10_and_13"
+     ],
+     [
+      "openlibrary/utils/isbn.py::normalize_isbn"
+     ],
+     [
+      "openlibrary/plugins/importapi/code.py::DataError"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 103,
+    "max_prompt": 12470,
+    "largest_code_share": 0.167
+   }
+  },
+  {
+   "exercise_id": "instance_ansible__ansible-bec27fb4c0a40c5f8bbcf26a475704227d65ee73-v30a923fb5c164d6cd18280c02422f75e611e8fb2",
+   "repo": "ansible/ansible",
+   "language": "python",
+   "calibration": 1.0495,
+   "shared_tokens": 7568,
+   "d_worker_exact": 77837,
+   "scope_files": 7,
+   "created_files": [
+    "changelogs/fragments/prettydoc.yml"
+   ],
+   "scope_file_tokens": 75744,
+   "touched_files": 2,
+   "touched_units": 4,
+   "file_lanes": {
+    "k": 2,
+    "max_prompt": 22287,
+    "largest_code_share": 1.0
+   },
+   "symbol_lanes": {
+    "k": 4,
+    "prompts": [
+     9286,
+     9251,
+     8980,
+     7568
+    ],
+    "max_prompt": 9286,
+    "largest_code_share": 0.503,
+    "lanes": [
+     [
+      "lib/ansible/cli/doc.py::RoleMixin._create_role_list"
+     ],
+     [
+      "lib/ansible/cli/doc.py::DocCLI.tty_ify"
+     ],
+     [
+      "lib/ansible/cli/doc.py::RoleMixin._build_summary"
+     ],
+     [
+      "changelogs/fragments/prettydoc.yml::<new file>"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 136,
+    "max_prompt": 16124,
+    "largest_code_share": 0.142
+   }
+  },
+  {
+   "exercise_id": "instance_element-hq__element-web-582a1b093fc0b77538052f45cbb9c7295f991b51-vnan",
+   "repo": "element-hq/element-web",
+   "language": "javascript",
+   "calibration": 1.0381,
+   "shared_tokens": 4862,
+   "d_worker_exact": 63381,
+   "scope_files": 3,
+   "created_files": [],
+   "scope_file_tokens": 60475,
+   "touched_files": 3,
+   "touched_units": 12,
+   "file_lanes": {
+    "k": 3,
+    "max_prompt": 25409,
+    "largest_code_share": 0.549
+   },
+   "symbol_lanes": {
+    "k": 8,
+    "prompts": [
+     10198,
+     7513,
+     5843,
+     5680,
+     5512,
+     5517,
+     7048,
+     5512
+    ],
+    "max_prompt": 10198,
+    "largest_code_share": 0.608,
+    "lanes": [
+     [
+      "src/components/structures/MatrixChat.tsx::MatrixChat.onWillStartClient"
+     ],
+     [
+      "src/components/views/rooms/EventTile.tsx::EventTile.componentDidMount"
+     ],
+     [
+      "src/DecryptionFailureTracker.ts::DecryptionFailureTracker"
+     ],
+     [
+      "src/DecryptionFailureTracker.ts::DecryptionFailureTracker.checkFailures"
+     ],
+     [
+      "src/DecryptionFailureTracker.ts::DecryptionFailureTracker.constructor",
+      "src/DecryptionFailureTracker.ts::DecryptionFailureTracker.addDecryptionFailure"
+     ],
+     [
+      "src/DecryptionFailureTracker.ts::DecryptionFailureTracker.aggregateFailures",
+      "src/DecryptionFailureTracker.ts::DecryptionFailureTracker.trackFailures"
+     ],
+     [
+      "src/components/views/rooms/EventTile.tsx::eventTileTypes"
+     ],
+     [
+      "src/DecryptionFailureTracker.ts::DecryptionFailure",
+      "src/DecryptionFailureTracker.ts::DecryptionFailureTracker.removeDecryptionFailuresForEvent",
+      "src/DecryptionFailureTracker.ts::DecryptionFailureTracker.stop"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 113,
+    "max_prompt": 12411,
+    "largest_code_share": 0.147
+   }
+  },
+  {
+   "exercise_id": "instance_internetarchive__openlibrary-7f6b722a10f822171501d027cad60afe53337732-ve8c8d62a2b60610a3c4631f5f23ed866bada9818",
+   "repo": "internetarchive/openlibrary",
+   "language": "python",
+   "calibration": 1.0875,
+   "shared_tokens": 9738,
+   "d_worker_exact": 48708,
+   "scope_files": 13,
+   "created_files": [
+    "openlibrary/plugins/worksearch/schemes/__init__.py",
+    "openlibrary/plugins/worksearch/schemes/authors.py",
+    "openlibrary/plugins/worksearch/schemes/subjects.py",
+    "openlibrary/plugins/worksearch/schemes/works.py"
+   ],
+   "scope_file_tokens": 43115,
+   "touched_files": 7,
+   "touched_units": 20,
+   "file_lanes": {
+    "k": 7,
+    "max_prompt": 21658,
+    "largest_code_share": 0.752
+   },
+   "symbol_lanes": {
+    "k": 8,
+    "prompts": [
+     14789,
+     10692,
+     11322,
+     12472,
+     12464,
+     12458,
+     12440,
+     12465
+    ],
+    "max_prompt": 14789,
+    "largest_code_share": 0.424,
+    "lanes": [
+     [
+      "openlibrary/plugins/worksearch/code.py::run_solr_query"
+     ],
+     [
+      "openlibrary/plugins/worksearch/schemes/__init__.py::<new file>",
+      "openlibrary/plugins/worksearch/schemes/authors.py::<new file>",
+      "openlibrary/plugins/worksearch/schemes/subjects.py::<new file>",
+      "openlibrary/plugins/worksearch/schemes/works.py::<new file>",
+      "openlibrary/solr/query_utils.py::luqum_parser"
+     ],
+     [
+      "openlibrary/solr/query_utils.py::luqum_traverse",
+      "openlibrary/solr/query_utils.py::escape_unknown_fields",
+      "openlibrary/solr/query_utils.py::fully_escape_query",
+      "openlibrary/utils/__init__.py::is_number"
+     ],
+     [
+      "openlibrary/plugins/worksearch/code.py::process_user_query"
+     ],
+     [
+      "openlibrary/plugins/worksearch/code.py::lcc_transform"
+     ],
+     [
+      "openlibrary/plugins/worksearch/code.py::ia_collection_s_transform",
+      "openlibrary/plugins/worksearch/code.py::author_search"
+     ],
+     [
+      "openlibrary/plugins/worksearch/code.py::get_solr_works",
+      "openlibrary/plugins/worksearch/code.py::has_solr_editions_enabled",
+      "openlibrary/plugins/worksearch/code.py::subject_search"
+     ],
+     [
+      "openlibrary/plugins/worksearch/code.py::ddc_transform",
+      "openlibrary/plugins/worksearch/code.py::isbn_transform",
+      "openlibrary/plugins/worksearch/code.py::build_q_from_params"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 95,
+    "max_prompt": 15369,
+    "largest_code_share": 0.139
+   }
+  },
+  {
+   "exercise_id": "instance_internetarchive__openlibrary-308a35d6999427c02b1dbf5211c033ad3b352556-ve8c8d62a2b60610a3c4631f5f23ed866bada9818",
+   "repo": "internetarchive/openlibrary",
+   "language": "python",
+   "calibration": 1.0947,
+   "shared_tokens": 7850,
+   "d_worker_exact": 75647,
+   "scope_files": 6,
+   "created_files": [],
+   "scope_file_tokens": 73255,
+   "touched_files": 5,
+   "touched_units": 10,
+   "file_lanes": {
+    "k": 5,
+    "max_prompt": 21751,
+    "largest_code_share": 0.285
+   },
+   "symbol_lanes": {
+    "k": 8,
+    "prompts": [
+     9420,
+     10483,
+     9466,
+     10004,
+     9394,
+     9947,
+     9617,
+     8596
+    ],
+    "max_prompt": 10483,
+    "largest_code_share": 0.383,
+    "lanes": [
+     [
+      "openlibrary/plugins/openlibrary/lists.py::export"
+     ],
+     [
+      "openlibrary/core/models.py::List"
+     ],
+     [
+      "openlibrary/plugins/upstream/models.py::setup"
+     ],
+     [
+      "openlibrary/core/models.py::register_types"
+     ],
+     [
+      "openlibrary/plugins/upstream/models.py::ListChangeset"
+     ],
+     [
+      "openlibrary/core/models.py::register_models"
+     ],
+     [
+      "openlibrary/plugins/upstream/utils.py::LanguageMultipleMatchError"
+     ],
+     [
+      "openlibrary/core/lists/model.py::get_subject",
+      "openlibrary/core/lists/model.py::ListMixin",
+      "openlibrary/core/lists/model.py::Seed.__repr__"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 363,
+    "max_prompt": 17658,
+    "largest_code_share": 0.151
+   }
+  },
+  {
+   "exercise_id": "instance_NodeBB__NodeBB-f1a80d48cc45877fcbadf34c2345dd9709722c7f-v4fbcfae8b15e4ce5d132c408bca69ebb9cf146ed",
+   "repo": "NodeBB/NodeBB",
+   "language": "javascript",
+   "calibration": 1.1468,
+   "shared_tokens": 6658,
+   "d_worker_exact": 48901,
+   "scope_files": 14,
+   "created_files": [],
+   "scope_file_tokens": 45121,
+   "touched_files": 11,
+   "touched_units": 17,
+   "file_lanes": {
+    "k": 11,
+    "max_prompt": 12121,
+    "largest_code_share": 0.206
+   },
+   "symbol_lanes": {
+    "k": 8,
+    "prompts": [
+     10527,
+     9412,
+     8276,
+     8910,
+     8388,
+     8511,
+     9210,
+     8293
+    ],
+    "max_prompt": 10527,
+    "largest_code_share": 0.254,
+    "lanes": [
+     [
+      "public/src/modules/helpers.common.js::module.exports"
+     ],
+     [
+      "src/categories/create.js::module.exports"
+     ],
+     [
+      "src/views/admin/partials/privileges/global.tpl::L1-120"
+     ],
+     [
+      "public/openapi/read/admin/manage/privileges/cid.yaml::L121-124",
+      "src/privileges/global.js::privsGlobal.init",
+      "src/views/admin/partials/privileges/category.tpl::L1-91"
+     ],
+     [
+      "public/openapi/read/admin/manage/privileges/cid.yaml::L1-120",
+      "src/privileges/global.js::privsGlobal.list"
+     ],
+     [
+      "public/openapi/write/categories/cid/privileges.yaml::L1-94",
+      "src/privileges/categories.js::privsCategories.init",
+      "src/privileges/categories.js::privsCategories.list"
+     ],
+     [
+      "src/privileges/admin.js::privsAdmin.init",
+      "src/privileges/admin.js::privsAdmin.list",
+      "src/views/admin/partials/privileges/category.tpl::L92-154"
+     ],
+     [
+      "public/src/admin/manage/privileges.js::L473-516",
+      "src/privileges/helpers.js::helpers.getUserPrivileges",
+      "src/privileges/helpers.js::helpers.getGroupPrivileges"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 94,
+    "max_prompt": 11985,
+    "largest_code_share": 0.138
+   }
+  },
+  {
+   "exercise_id": "instance_internetarchive__openlibrary-30bc73a1395fba2300087c7f307e54bb5372b60a-v76304ecdb3a5954fcf13feb710e8c40fcf24b73c",
+   "repo": "internetarchive/openlibrary",
+   "language": "python",
+   "calibration": 1.088,
+   "shared_tokens": 3730,
+   "d_worker_exact": 15239,
+   "scope_files": 4,
+   "created_files": [],
+   "scope_file_tokens": 12164,
+   "touched_files": 2,
+   "touched_units": 4,
+   "file_lanes": {
+    "k": 2,
+    "max_prompt": 5667,
+    "largest_code_share": 0.547
+   },
+   "symbol_lanes": {
+    "k": 4,
+    "prompts": [
+     5623,
+     4531,
+     4580,
+     3958
+    ],
+    "max_prompt": 5623,
+    "largest_code_share": 0.55,
+    "lanes": [
+     [
+      "openlibrary/coverstore/README.md::L1-75"
+     ],
+     [
+      "openlibrary/coverstore/archive.py::archive"
+     ],
+     [
+      "openlibrary/coverstore/archive.py::TarManager"
+     ],
+     [
+      "openlibrary/coverstore/archive.py::log"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 31,
+    "max_prompt": 5691,
+    "largest_code_share": 0.192
+   }
+  },
+  {
+   "exercise_id": "instance_qutebrowser__qutebrowser-3fd8e12949b8feda401930574facf09dd4180bba",
+   "repo": "qutebrowser/qutebrowser",
+   "language": "python",
+   "calibration": 1.1433,
+   "shared_tokens": 7788,
+   "d_worker_exact": 61764,
+   "scope_files": 6,
+   "created_files": [],
+   "scope_file_tokens": 59609,
+   "touched_files": 2,
+   "touched_units": 4,
+   "file_lanes": {
+    "k": 2,
+    "max_prompt": 26530,
+    "largest_code_share": 0.881
+   },
+   "symbol_lanes": {
+    "k": 4,
+    "prompts": [
+     10230,
+     8831,
+     8692,
+     8469
+    ],
+    "max_prompt": 10230,
+    "largest_code_share": 0.642,
+    "lanes": [
+     [
+      "doc/help/commands.asciidoc::L1-120"
+     ],
+     [
+      "doc/help/commands.asciidoc::L242-302"
+     ],
+     [
+      "doc/help/commands.asciidoc::L1040-1100"
+     ],
+     [
+      "qutebrowser/misc/utilcmds.py::repeat_command"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 140,
+    "max_prompt": 14182,
+    "largest_code_share": 0.132
+   }
+  },
+  {
+   "exercise_id": "instance_NodeBB__NodeBB-a5afad27e52fd336163063ba40dcadc80233ae10-vd59a5728dfc977f44533186ace531248c2917516",
+   "repo": "NodeBB/NodeBB",
+   "language": "javascript",
+   "calibration": 1.2052,
+   "shared_tokens": 3118,
+   "d_worker_exact": 48228,
+   "scope_files": 12,
+   "created_files": [
+    "src/upgrades/4.3.0/chat_allow_list.js"
+   ],
+   "scope_file_tokens": 45504,
+   "touched_files": 6,
+   "touched_units": 7,
+   "file_lanes": {
+    "k": 6,
+    "max_prompt": 7414,
+    "largest_code_share": 0.319
+   },
+   "symbol_lanes": {
+    "k": 7,
+    "prompts": [
+     5256,
+     4120,
+     4100,
+     3762,
+     3636,
+     4174,
+     3118
+    ],
+    "max_prompt": 5256,
+    "largest_code_share": 0.367,
+    "lanes": [
+     [
+      "src/user/settings.js::module.exports"
+     ],
+     [
+      "public/openapi/components/schemas/SettingsObj.yaml::L1-120"
+     ],
+     [
+      "public/language/en-GB/user.json::L72-135"
+     ],
+     [
+      "public/src/client/account/settings.js::L61-127"
+     ],
+     [
+      "public/src/client/account/settings.js::L1-60"
+     ],
+     [
+      "src/messaging/index.js::Messaging.canMessageUser"
+     ],
+     [
+      "src/upgrades/4.3.0/chat_allow_list.js::<new file>"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 52,
+    "max_prompt": 8378,
+    "largest_code_share": 0.129
+   }
+  },
+  {
+   "exercise_id": "instance_element-hq__element-web-33e8edb3d508d6eefb354819ca693b7accc695e7",
+   "repo": "element-hq/element-web",
+   "language": "javascript",
+   "calibration": 1.0505,
+   "shared_tokens": 5512,
+   "d_worker_exact": 80510,
+   "scope_files": 9,
+   "created_files": [
+    "src/KeyBindingsDefaults.ts",
+    "src/KeyBindingsManager.ts"
+   ],
+   "scope_file_tokens": 77141,
+   "touched_files": 4,
+   "touched_units": 5,
+   "file_lanes": {
+    "k": 4,
+    "max_prompt": 23956,
+    "largest_code_share": 0.74
+   },
+   "symbol_lanes": {
+    "k": 5,
+    "prompts": [
+     9710,
+     7687,
+     6567,
+     5512,
+     5512
+    ],
+    "max_prompt": 9710,
+    "largest_code_share": 0.687,
+    "lanes": [
+     [
+      "src/components/structures/RoomView.tsx::RoomView.componentWillUnmount"
+     ],
+     [
+      "src/components/views/rooms/BasicMessageComposer.tsx::BasicMessageEditor.isCaretAtEnd"
+     ],
+     [
+      "src/components/views/rooms/BasicMessageComposer.tsx::ctrlShortcutLabel"
+     ],
+     [
+      "src/KeyBindingsDefaults.ts::<new file>"
+     ],
+     [
+      "src/KeyBindingsManager.ts::<new file>"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 131,
+    "max_prompt": 13327,
+    "largest_code_share": 0.137
+   }
+  },
+  {
+   "exercise_id": "instance_internetarchive__openlibrary-92db3454aeaa02f89b4cdbc3103f7e95c9759f92-v2c55207218fb8a0138425cbf7d9675272e240b90",
+   "repo": "internetarchive/openlibrary",
+   "language": "python",
+   "calibration": 1.0942,
+   "shared_tokens": 9542,
+   "d_worker_exact": 56317,
+   "scope_files": 11,
+   "created_files": [],
+   "scope_file_tokens": 54183,
+   "touched_files": 2,
+   "touched_units": 2,
+   "file_lanes": {
+    "k": 2,
+    "max_prompt": 13381,
+    "largest_code_share": 0.857
+   },
+   "symbol_lanes": {
+    "k": 2,
+    "prompts": [
+     10245,
+     9946
+    ],
+    "max_prompt": 10245,
+    "largest_code_share": 0.847,
+    "lanes": [
+     [
+      "docker-compose.yml::L1-75"
+     ],
+     [
+      "openlibrary/core/bookshelves.py::Bookshelves"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 198,
+    "max_prompt": 16435,
+    "largest_code_share": 0.163
+   }
+  },
+  {
+   "exercise_id": "instance_internetarchive__openlibrary-8a5a63af6e0be406aa6c8c9b6d5f28b2f1b6af5a-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4",
+   "repo": "internetarchive/openlibrary",
+   "language": "python",
+   "calibration": 1.2419,
+   "shared_tokens": 2252,
+   "d_worker_exact": 9107,
+   "scope_files": 5,
+   "created_files": [
+    "scripts/monitoring/haproxy_monitor.py"
+   ],
+   "scope_file_tokens": 6737,
+   "touched_files": 4,
+   "touched_units": 5,
+   "file_lanes": {
+    "k": 4,
+    "max_prompt": 5394,
+    "largest_code_share": 0.632
+   },
+   "symbol_lanes": {
+    "k": 5,
+    "prompts": [
+     2721,
+     2667,
+     2554,
+     2607,
+     2252
+    ],
+    "max_prompt": 2721,
+    "largest_code_share": 0.4,
+    "lanes": [
+     [
+      "compose.production.yaml::L290-335"
+     ],
+     [
+      "scripts/monitoring/utils.py::OlBlockingScheduler"
+     ],
+     [
+      "scripts/monitoring/utils.py::limit_server"
+     ],
+     [
+      "scripts/monitoring/monitor.py::log_workers_cur_fn"
+     ],
+     [
+      "scripts/monitoring/haproxy_monitor.py::<new file>"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 14,
+    "max_prompt": 3151,
+    "largest_code_share": 0.157
+   }
+  },
+  {
+   "exercise_id": "instance_qutebrowser__qutebrowser-394bfaed6544c952c6b3463751abab3176ad4997-vafb3e8e01b31319c66c4e666b8a3b1d8ba55db24",
+   "repo": "qutebrowser/qutebrowser",
+   "language": "python",
+   "calibration": 1.1802,
+   "shared_tokens": 8858,
+   "d_worker_exact": 36500,
+   "scope_files": 6,
+   "created_files": [
+    "qutebrowser/misc/elf.py"
+   ],
+   "scope_file_tokens": 32149,
+   "touched_files": 3,
+   "touched_units": 4,
+   "file_lanes": {
+    "k": 3,
+    "max_prompt": 15782,
+    "largest_code_share": 0.768
+   },
+   "symbol_lanes": {
+    "k": 4,
+    "prompts": [
+     10404,
+     11348,
+     10253,
+     8858
+    ],
+    "max_prompt": 11348,
+    "largest_code_share": 0.589,
+    "lanes": [
+     [
+      "scripts/dev/run_vulture.py::whitelist_generator"
+     ],
+     [
+      "qutebrowser/utils/version.py::_chromium_version"
+     ],
+     [
+      "qutebrowser/utils/version.py::_backend"
+     ],
+     [
+      "qutebrowser/misc/elf.py::<new file>"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 82,
+    "max_prompt": 13782,
+    "largest_code_share": 0.175
+   }
+  },
+  {
+   "exercise_id": "instance_ansible__ansible-de5858f48dc9e1ce9117034e0d7e76806f420ca8-v1055803c3a812189a1133297f7f5468579283f86",
+   "repo": "ansible/ansible",
+   "language": "python",
+   "calibration": 1.1182,
+   "shared_tokens": 5387,
+   "d_worker_exact": 71456,
+   "scope_files": 4,
+   "created_files": [
+    "changelogs/fragments/galaxy-cache.yml"
+   ],
+   "scope_file_tokens": 68352,
+   "touched_files": 4,
+   "touched_units": 8,
+   "file_lanes": {
+    "k": 4,
+    "max_prompt": 27772,
+    "largest_code_share": 0.445
+   },
+   "symbol_lanes": {
+    "k": 8,
+    "prompts": [
+     7179,
+     7648,
+     6903,
+     7260,
+     6889,
+     6208,
+     6145,
+     5387
+    ],
+    "max_prompt": 7648,
+    "largest_code_share": 0.28,
+    "lanes": [
+     [
+      "lib/ansible/config/base.yml::L1441-1560"
+     ],
+     [
+      "lib/ansible/cli/galaxy.py::GalaxyCLI.run"
+     ],
+     [
+      "lib/ansible/galaxy/api.py::g_connect"
+     ],
+     [
+      "lib/ansible/cli/galaxy.py::GalaxyCLI.add_install_options"
+     ],
+     [
+      "lib/ansible/cli/galaxy.py::GalaxyCLI.add_download_options"
+     ],
+     [
+      "lib/ansible/galaxy/api.py::GalaxyAPI.__init__"
+     ],
+     [
+      "lib/ansible/galaxy/api.py::_urljoin"
+     ],
+     [
+      "changelogs/fragments/galaxy-cache.yml::<new file>"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 91,
+    "max_prompt": 12914,
+    "largest_code_share": 0.133
+   }
+  },
+  {
+   "exercise_id": "instance_internetarchive__openlibrary-798a582540019363d14b2090755cc7b89a350788-v430f20c722405e462d9ef44dee7d34c41e76fe7a",
+   "repo": "internetarchive/openlibrary",
+   "language": "python",
+   "calibration": 1.095,
+   "shared_tokens": 8609,
+   "d_worker_exact": 76273,
+   "scope_files": 6,
+   "created_files": [],
+   "scope_file_tokens": 73139,
+   "touched_files": 6,
+   "touched_units": 10,
+   "file_lanes": {
+    "k": 6,
+    "max_prompt": 22510,
+    "largest_code_share": 0.24
+   },
+   "symbol_lanes": {
+    "k": 8,
+    "prompts": [
+     10179,
+     11242,
+     10356,
+     10225,
+     10153,
+     10706,
+     10376,
+     9355
+    ],
+    "max_prompt": 11242,
+    "largest_code_share": 0.359,
+    "lanes": [
+     [
+      "openlibrary/plugins/openlibrary/lists.py::export"
+     ],
+     [
+      "openlibrary/core/models.py::List"
+     ],
+     [
+      "openlibrary/plugins/openlibrary/code.py::hooks"
+     ],
+     [
+      "openlibrary/plugins/upstream/models.py::setup"
+     ],
+     [
+      "openlibrary/plugins/upstream/models.py::ListChangeset"
+     ],
+     [
+      "openlibrary/core/models.py::register_models"
+     ],
+     [
+      "openlibrary/plugins/upstream/utils.py::LanguageMultipleMatchError"
+     ],
+     [
+      "openlibrary/core/lists/model.py::get_subject",
+      "openlibrary/core/lists/model.py::ListMixin",
+      "openlibrary/core/lists/model.py::Seed.__repr__"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 363,
+    "max_prompt": 16912,
+    "largest_code_share": 0.14
+   }
+  },
+  {
+   "exercise_id": "instance_internetarchive__openlibrary-7c8dc180281491ccaa1b4b43518506323750d1e4-v298a7a812ceed28c4c18355a091f1b268fe56d86",
+   "repo": "internetarchive/openlibrary",
+   "language": "python",
+   "calibration": 1.2052,
+   "shared_tokens": 3765,
+   "d_worker_exact": 15293,
+   "scope_files": 4,
+   "created_files": [],
+   "scope_file_tokens": 12316,
+   "touched_files": 2,
+   "touched_units": 3,
+   "file_lanes": {
+    "k": 2,
+    "max_prompt": 6171,
+    "largest_code_share": 0.507
+   },
+   "symbol_lanes": {
+    "k": 3,
+    "prompts": [
+     4918,
+     5002,
+     4231
+    ],
+    "max_prompt": 5002,
+    "largest_code_share": 0.485,
+    "lanes": [
+     [
+      "openlibrary/catalog/marc/get_subjects.py::read_subjects"
+     ],
+     [
+      "pyproject.toml::L121-198"
+     ],
+     [
+      "openlibrary/catalog/marc/get_subjects.py::find_aspects"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 40,
+    "max_prompt": 5595,
+    "largest_code_share": 0.144
+   }
+  },
+  {
+   "exercise_id": "instance_element-hq__element-web-d06cf09bf0b3d4a0fbe6bd32e4115caea2083168-vnan",
+   "repo": "element-hq/element-web",
+   "language": "javascript",
+   "calibration": 1.0408,
+   "shared_tokens": 4469,
+   "d_worker_exact": 27074,
+   "scope_files": 7,
+   "created_files": [
+    "src/utils/react.tsx"
+   ],
+   "scope_file_tokens": 23904,
+   "touched_files": 7,
+   "touched_units": 17,
+   "file_lanes": {
+    "k": 7,
+    "max_prompt": 9324,
+    "largest_code_share": 0.315
+   },
+   "symbol_lanes": {
+    "k": 8,
+    "prompts": [
+     5976,
+     5136,
+     5688,
+     5566,
+     5667,
+     5313,
+     5714,
+     5703
+    ],
+    "max_prompt": 5976,
+    "largest_code_share": 0.334,
+    "lanes": [
+     [
+      "src/utils/pillify.tsx::pillifyLinks"
+     ],
+     [
+      "src/utils/react.tsx::<new file>",
+      "src/utils/tooltipify.tsx::tooltipifyLinks"
+     ],
+     [
+      "src/components/views/messages/TextualBody.tsx::TextualBody.applyFormatting",
+      "src/components/views/messages/TextualBody.tsx::TextualBody.componentWillUnmount"
+     ],
+     [
+      "src/utils/exportUtils/HtmlExport.tsx::HTMLExporter.getEventTileMarkup"
+     ],
+     [
+      "src/components/views/messages/TextualBody.tsx::TextualBody",
+      "src/components/views/messages/TextualBody.tsx::TextualBody.wrapPreInReact",
+      "src/components/views/messages/TextualBody.tsx::TextualBody.activateSpoilers"
+     ],
+     [
+      "src/utils/pillify.tsx::shouldBePillified",
+      "src/utils/pillify.tsx::unmountPills",
+      "src/utils/tooltipify.tsx::unmountTooltips"
+     ],
+     [
+      "src/components/views/elements/PersistedElement.tsx::PersistedElement",
+      "src/components/views/messages/EditHistoryMessage.tsx::EditHistoryMessage.componentWillUnmount"
+     ],
+     [
+      "src/components/views/elements/PersistedElement.tsx::PersistedElement.renderApp",
+      "src/components/views/messages/EditHistoryMessage.tsx::EditHistoryMessage",
+      "src/components/views/messages/EditHistoryMessage.tsx::EditHistoryMessage.tooltipifyLinks"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 64,
+    "max_prompt": 7320,
+    "largest_code_share": 0.149
+   }
+  },
+  {
+   "exercise_id": "instance_internetarchive__openlibrary-4b7ea2977be2747496ba792a678940baa985f7ea-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4",
+   "repo": "internetarchive/openlibrary",
+   "language": "python",
+   "calibration": 1.0979,
+   "shared_tokens": 9954,
+   "d_worker_exact": 48312,
+   "scope_files": 8,
+   "created_files": [
+    "requirements_scripts.txt"
+   ],
+   "scope_file_tokens": 45298,
+   "touched_files": 6,
+   "touched_units": 11,
+   "file_lanes": {
+    "k": 6,
+    "max_prompt": 20963,
+    "largest_code_share": 0.49
+   },
+   "symbol_lanes": {
+    "k": 8,
+    "prompts": [
+     12368,
+     11539,
+     11896,
+     11011,
+     12469,
+     10898,
+     11067,
+     11466
+    ],
+    "max_prompt": 12469,
+    "largest_code_share": 0.275,
+    "lanes": [
+     [
+      "scripts/providers/import_wikisource.py::BookRecord"
+     ],
+     [
+      "openlibrary/plugins/importapi/import_edition_builder.py::import_edition_builder"
+     ],
+     [
+      "scripts/providers/import_wikisource.py::fix_contributor_data"
+     ],
+     [
+      "openlibrary/catalog/add_book/load_book.py::find_author"
+     ],
+     [
+      "openlibrary/core/models.py::_get_ol_base_url",
+      "openlibrary/core/models.py::Author"
+     ],
+     [
+      "openlibrary/catalog/add_book/load_book.py::import_author",
+      "requirements_scripts.txt::<new file>"
+     ],
+     [
+      "openlibrary/catalog/add_book/load_book.py::find_entity",
+      "openlibrary/plugins/importapi/import_validator.py::Author"
+     ],
+     [
+      "scripts/providers/import_wikisource.py::Author"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 163,
+    "max_prompt": 16772,
+    "largest_code_share": 0.168
+   }
+  },
+  {
+   "exercise_id": "instance_ansible__ansible-395e5e20fab9cad517243372fa3c3c5d9e09ab2a-v7eee2454f617569fd6889f2211f75bc02a35f9f8",
+   "repo": "ansible/ansible",
+   "language": "python",
+   "calibration": 0.9413,
+   "shared_tokens": 5381,
+   "d_worker_exact": 38133,
+   "scope_files": 4,
+   "created_files": [
+    "changelogs/fragments/74511-PlayIterator-states-enums.yml"
+   ],
+   "scope_file_tokens": 35341,
+   "touched_files": 4,
+   "touched_units": 16,
+   "file_lanes": {
+    "k": 4,
+    "max_prompt": 18485,
+    "largest_code_share": 0.562
+   },
+   "symbol_lanes": {
+    "k": 8,
+    "prompts": [
+     9696,
+     8555,
+     7883,
+     8201,
+     7129,
+     7042,
+     8197,
+     7014
+    ],
+    "max_prompt": 9696,
+    "largest_code_share": 0.253,
+    "lanes": [
+     [
+      "lib/ansible/plugins/strategy/__init__.py::StrategyBase._process_pending_results"
+     ],
+     [
+      "lib/ansible/plugins/strategy/linear.py::StrategyModule.run"
+     ],
+     [
+      "lib/ansible/executor/play_iterator.py::PlayIterator._get_next_task_from_state"
+     ],
+     [
+      "lib/ansible/plugins/strategy/__init__.py::StrategyBase._execute_meta"
+     ],
+     [
+      "lib/ansible/plugins/strategy/linear.py::StrategyModule._get_next_task_lockstep"
+     ],
+     [
+      "lib/ansible/executor/play_iterator.py::HostState",
+      "lib/ansible/executor/play_iterator.py::PlayIterator.get_active_state",
+      "lib/ansible/executor/play_iterator.py::PlayIterator.is_any_block_rescuing"
+     ],
+     [
+      "lib/ansible/executor/play_iterator.py::PlayIterator.__init__",
+      "lib/ansible/executor/play_iterator.py::PlayIterator._check_failed_state",
+      "lib/ansible/plugins/strategy/__init__.py::StrategySentinel"
+     ],
+     [
+      "changelogs/fragments/74511-PlayIterator-states-enums.yml::<new file>",
+      "lib/ansible/executor/play_iterator.py::PlayIterator",
+      "lib/ansible/executor/play_iterator.py::PlayIterator.get_next_task_for_host",
+      "lib/ansible/executor/play_iterator.py::PlayIterator._set_failed_state",
+      "lib/ansible/executor/play_iterator.py::PlayIterator._insert_tasks_into_state"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 58,
+    "max_prompt": 9696,
+    "largest_code_share": 0.162
+   }
+  },
+  {
+   "exercise_id": "instance_internetarchive__openlibrary-c506c1b0b678892af5cb22c1c1dbc35d96787a0a-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4",
+   "repo": "internetarchive/openlibrary",
+   "language": "python",
+   "calibration": 1.1518,
+   "shared_tokens": 5807,
+   "d_worker_exact": 62571,
+   "scope_files": 14,
+   "created_files": [
+    "openlibrary/utils/open_syllabus_project.py",
+    "scripts/open_syllabus_project_parser.py"
+   ],
+   "scope_file_tokens": 60241,
+   "touched_files": 6,
+   "touched_units": 7,
+   "file_lanes": {
+    "k": 6,
+    "max_prompt": 21785,
+    "largest_code_share": 0.666
+   },
+   "symbol_lanes": {
+    "k": 7,
+    "prompts": [
+     6916,
+     7909,
+     7188,
+     6648,
+     7135,
+     5807,
+     5807
+    ],
+    "max_prompt": 7909,
+    "largest_code_share": 0.271,
+    "lanes": [
+     [
+      "scripts/solr_builder/solr_builder/fn_to_cli.py::FnToCLI"
+     ],
+     [
+      "openlibrary/solr/updater/work.py::WorkSolrUpdater"
+     ],
+     [
+      "conf/solr/conf/managed-schema.xml::L164-224"
+     ],
+     [
+      "openlibrary/solr/solr_types.py::SolrDocument"
+     ],
+     [
+      "openlibrary/solr/updater/work.py::WorkSolrBuilder._ia_editions"
+     ],
+     [
+      "openlibrary/utils/open_syllabus_project.py::<new file>"
+     ],
+     [
+      "scripts/open_syllabus_project_parser.py::<new file>"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 132,
+    "max_prompt": 12517,
+    "largest_code_share": 0.135
+   }
+  },
+  {
+   "exercise_id": "instance_ansible__ansible-bf98f031f3f5af31a2d78dc2f0a58fe92ebae0bb-v1055803c3a812189a1133297f7f5468579283f86",
+   "repo": "ansible/ansible",
+   "language": "python",
+   "calibration": 1.0299,
+   "shared_tokens": 5754,
+   "d_worker_exact": 53809,
+   "scope_files": 4,
+   "created_files": [
+    "changelogs/fragments/70762-sanitize-uri-keys.yml"
+   ],
+   "scope_file_tokens": 51542,
+   "touched_files": 4,
+   "touched_units": 4,
+   "file_lanes": {
+    "k": 4,
+    "max_prompt": 31176,
+    "largest_code_share": 0.734
+   },
+   "symbol_lanes": {
+    "k": 4,
+    "prompts": [
+     11220,
+     7025,
+     10150,
+     5754
+    ],
+    "max_prompt": 11220,
+    "largest_code_share": 0.501,
+    "lanes": [
+     [
+      "lib/ansible/modules/uri.py::main"
+     ],
+     [
+      "docs/docsite/rst/dev_guide/developing_modules_best_practices.rst::L122-175"
+     ],
+     [
+      "lib/ansible/module_utils/basic.py::remove_values"
+     ],
+     [
+      "changelogs/fragments/70762-sanitize-uri-keys.yml::<new file>"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 113,
+    "max_prompt": 14011,
+    "largest_code_share": 0.143
+   }
+  },
+  {
+   "exercise_id": "instance_internetarchive__openlibrary-1be7de788a444f6255e89c10ef6aa608550604a8-v29f82c9cf21d57b242f8d8b0e541525d259e2d63",
+   "repo": "internetarchive/openlibrary",
+   "language": "python",
+   "calibration": 1.1088,
+   "shared_tokens": 5561,
+   "d_worker_exact": 24764,
+   "scope_files": 4,
+   "created_files": [],
+   "scope_file_tokens": 21599,
+   "touched_files": 4,
+   "touched_units": 6,
+   "file_lanes": {
+    "k": 4,
+    "max_prompt": 13951,
+    "largest_code_share": 0.556
+   },
+   "symbol_lanes": {
+    "k": 6,
+    "prompts": [
+     6022,
+     7053,
+     6801,
+     6318,
+     6286,
+     6660
+    ],
+    "max_prompt": 7053,
+    "largest_code_share": 0.246,
+    "lanes": [
+     [
+      "openlibrary/catalog/add_book/match.py::editions_match"
+     ],
+     [
+      "openlibrary/catalog/add_book/__init__.py::find_enriched_match"
+     ],
+     [
+      "openlibrary/catalog/utils/__init__.py::expand_record"
+     ],
+     [
+      "openlibrary/catalog/merge/merge_marc.py::build_titles"
+     ],
+     [
+      "openlibrary/catalog/merge/merge_marc.py::compare_publisher"
+     ],
+     [
+      "openlibrary/catalog/utils/__init__.py::add_db_name"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 83,
+    "max_prompt": 9390,
+    "largest_code_share": 0.17
+   }
+  },
+  {
+   "exercise_id": "instance_ansible__ansible-d58e69c82d7edd0583dd8e78d76b075c33c3151e-v173091e2e36d38c978002990795f66cfc0af30ad",
+   "repo": "ansible/ansible",
+   "language": "python",
+   "calibration": 1.0937,
+   "shared_tokens": 7814,
+   "d_worker_exact": 53164,
+   "scope_files": 3,
+   "created_files": [],
+   "scope_file_tokens": 48832,
+   "touched_files": 3,
+   "touched_units": 13,
+   "file_lanes": {
+    "k": 3,
+    "max_prompt": 26867,
+    "largest_code_share": 0.598
+   },
+   "symbol_lanes": {
+    "k": 8,
+    "prompts": [
+     13752,
+     13550,
+     13391,
+     14337,
+     12354,
+     11899,
+     12104,
+     12344
+    ],
+    "max_prompt": 14337,
+    "largest_code_share": 0.218,
+    "lanes": [
+     [
+      "lib/ansible/module_utils/urls.py::Request.open"
+     ],
+     [
+      "lib/ansible/modules/get_url.py::main"
+     ],
+     [
+      "lib/ansible/module_utils/urls.py::fetch_url"
+     ],
+     [
+      "lib/ansible/modules/uri.py::format_message",
+      "lib/ansible/modules/uri.py::uri",
+      "lib/ansible/modules/uri.py::main"
+     ],
+     [
+      "lib/ansible/module_utils/urls.py::HTTPGSSAPIAuthHandler"
+     ],
+     [
+      "lib/ansible/modules/get_url.py::url_filename",
+      "lib/ansible/modules/get_url.py::url_get"
+     ],
+     [
+      "lib/ansible/module_utils/urls.py::MissingModuleError",
+      "lib/ansible/module_utils/urls.py::Request.__init__"
+     ],
+     [
+      "lib/ansible/module_utils/urls.py::open_url",
+      "lib/ansible/module_utils/urls.py::fetch_file"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 67,
+    "max_prompt": 15181,
+    "largest_code_share": 0.132
+   }
+  },
+  {
+   "exercise_id": "instance_NodeBB__NodeBB-8ca65b0c78c67c1653487c02d1135e1b702185e1-vf2cf3cbd463b7ad942381f1c6d077626485a1e9e",
+   "repo": "NodeBB/NodeBB",
+   "language": "javascript",
+   "calibration": 1.1811,
+   "shared_tokens": 2207,
+   "d_worker_exact": 7813,
+   "scope_files": 3,
+   "created_files": [],
+   "scope_file_tokens": 5528,
+   "touched_files": 2,
+   "touched_units": 7,
+   "file_lanes": {
+    "k": 2,
+    "max_prompt": 4709,
+    "largest_code_share": 0.701
+   },
+   "symbol_lanes": {
+    "k": 7,
+    "prompts": [
+     2663,
+     2941,
+     2812,
+     2811,
+     2808,
+     2754,
+     2753
+    ],
+    "max_prompt": 2941,
+    "largest_code_share": 0.334,
+    "lanes": [
+     [
+      "public/src/modules/uploader.js::L67-118"
+     ],
+     [
+      "src/controllers/admin/uploads.js::uploadsController.uploadTouchIcon"
+     ],
+     [
+      "src/controllers/admin/uploads.js::uploadsController.uploadCategoryPicture"
+     ],
+     [
+      "src/controllers/admin/uploads.js::uploadsController.uploadFavicon"
+     ],
+     [
+      "src/controllers/admin/uploads.js::uploadsController.uploadMaskableIcon"
+     ],
+     [
+      "src/controllers/admin/uploads.js::upload"
+     ],
+     [
+      "src/controllers/admin/uploads.js::validateUpload"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 19,
+    "max_prompt": 3148,
+    "largest_code_share": 0.162
+   }
+  },
+  {
+   "exercise_id": "instance_qutebrowser__qutebrowser-85b867fe8d4378c8e371f055c70452f546055854-v2ef375ac784985212b1805e1d0431dc8f1b3c171",
+   "repo": "qutebrowser/qutebrowser",
+   "language": "python",
+   "calibration": 1.1909,
+   "shared_tokens": 5677,
+   "d_worker_exact": 43899,
+   "scope_files": 3,
+   "created_files": [],
+   "scope_file_tokens": 41461,
+   "touched_files": 1,
+   "touched_units": 1,
+   "file_lanes": {
+    "k": 1,
+    "max_prompt": 12483,
+    "largest_code_share": 1.0
+   },
+   "symbol_lanes": {
+    "k": 1,
+    "prompts": [
+     7229
+    ],
+    "max_prompt": 7229,
+    "largest_code_share": 1.0,
+    "lanes": [
+     [
+      "qutebrowser/utils/utils.py::parse_rect"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 92,
+    "max_prompt": 10624,
+    "largest_code_share": 0.132
+   }
+  },
+  {
+   "exercise_id": "instance_ansible__ansible-5260527c4a71bfed99d803e687dd19619423b134-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5",
+   "repo": "ansible/ansible",
+   "language": "python",
+   "calibration": 1.0355,
+   "shared_tokens": 5699,
+   "d_worker_exact": 43814,
+   "scope_files": 4,
+   "created_files": [
+    "changelogs/fragments/67794-atomic_move-default-perms.yml"
+   ],
+   "scope_file_tokens": 41862,
+   "touched_files": 2,
+   "touched_units": 2,
+   "file_lanes": {
+    "k": 2,
+    "max_prompt": 6081,
+    "largest_code_share": 1.0
+   },
+   "symbol_lanes": {
+    "k": 2,
+    "prompts": [
+     6061,
+     5699
+    ],
+    "max_prompt": 6061,
+    "largest_code_share": 1.0,
+    "lanes": [
+     [
+      "docs/docsite/rst/porting_guides/porting_guide_2.11.rst::L1-61"
+     ],
+     [
+      "changelogs/fragments/67794-atomic_move-default-perms.yml::<new file>"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 112,
+    "max_prompt": 13104,
+    "largest_code_share": 0.129
+   }
+  },
+  {
+   "exercise_id": "instance_NodeBB__NodeBB-9c576a0758690f45a6ca03b5884c601e473bf2c1-vd59a5728dfc977f44533186ace531248c2917516",
+   "repo": "NodeBB/NodeBB",
+   "language": "javascript",
+   "calibration": 1.2247,
+   "shared_tokens": 3827,
+   "d_worker_exact": 27261,
+   "scope_files": 8,
+   "created_files": [],
+   "scope_file_tokens": 23271,
+   "touched_files": 4,
+   "touched_units": 6,
+   "file_lanes": {
+    "k": 4,
+    "max_prompt": 6635,
+    "largest_code_share": 0.371
+   },
+   "symbol_lanes": {
+    "k": 6,
+    "prompts": [
+     4968,
+     4739,
+     4745,
+     4553,
+     4153,
+     4140
+    ],
+    "max_prompt": 4968,
+    "largest_code_share": 0.374,
+    "lanes": [
+     [
+      "public/language/en-GB/admin/settings/email.json::L1-49"
+     ],
+     [
+      "src/views/admin/settings/email.tpl::L1-60"
+     ],
+     [
+      "src/user/email.js::UserEmail.sendValidationEmail"
+     ],
+     [
+      "install/data/defaults.json::L121-183"
+     ],
+     [
+      "src/user/email.js::UserEmail.isValidationPending"
+     ],
+     [
+      "src/user/email.js::UserEmail.expireValidation"
+     ]
+    ]
+   },
+   "cover_lanes": {
+    "k": 8,
+    "units": 40,
+    "max_prompt": 6652,
+    "largest_code_share": 0.132
+   }
+  }
+ ]
+}
