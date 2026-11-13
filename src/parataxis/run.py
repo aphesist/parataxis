@@ -35,7 +35,8 @@ def main(argv: list[str] | None = None) -> int:
 
         swepro_run.LaneConfig = functools.partial(lanes.LaneConfig, ladder=lanes.LOCAL_LADDER,
                                                   lane_max_tokens=lanes.LOCAL_LANE_MAX_TOKENS,
-                                                  concurrency=concurrency, symbol_lanes=True)
+                                                  concurrency=concurrency, symbol_lanes=True,
+                                                  task_seconds=600.0)
     from contraprova.harness.run import main as harness_main
 
     from .arms import install

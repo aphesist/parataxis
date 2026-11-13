@@ -160,6 +160,21 @@ def make_counter(args):
     """None (estimate), or a callable text -> exact prompt tokens of one user message with it."""
     if args.fake_count:
         return lambda text: est_tokens(text, 3.5)
+    if args.count_local:
+        from contraprova.interfaces import Message
+
+        from parataxis.lanes import LOCAL_MODEL
+        from parataxis.local import VLLMClient
+
+        local = VLLMClient(args.count_local)
+        memo_l: dict[str, int] = {}
+
+        def count_l(text: str) -> int:
+            if text not in memo_l:
+                memo_l[text] = local.count_tokens(model=LOCAL_MODEL, system="", messages=[Message("user", text)])
+            return memo_l[text]
+
+        return count_l
     if not args.count_tokens:
         return None
     from contraprova.interfaces import Message
@@ -190,6 +205,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--count-tokens", action="store_true",
                     help="count lane views exactly with the free count_tokens endpoint (needs contraprova and a key)")
     ap.add_argument("--count-model", default="claude-haiku-5-5", help="model whose tokenizer counts (the lane worker's)")
+    ap.add_argument("--count-local", metavar="URL", default=None,
+                    help="count with the local model's tokenizer via vLLM /tokenize at URL (key from PARATAXIS_VLLM_KEY)")
     ap.add_argument("--fake-count", action="store_true", help=argparse.SUPPRESS)  # offline test of the counted path
     args = ap.parse_args(argv)
     count = make_counter(args)
@@ -273,7 +290,7 @@ def main(argv: list[str] | None = None) -> int:
 
     summary = {
         "tasks": len(rows), "counted": count is not None,
-        "count_model": args.count_model if count is not None else None, "target_tokens": args.target, "max_lanes": args.max_lanes,
+        "count_model": ("local (vLLM /tokenize)" if args.count_local else args.count_model) if count is not None else None, "target_tokens": args.target, "max_lanes": args.max_lanes,
         "board_tokens": args.board_tokens, "split_class_lines": args.split_class_lines,
         "calibration": summarize([r["calibration"] for r in rows], 3),
         "shared_tokens": summarize([r["shared_tokens"] for r in rows]),
@@ -301,8 +318,8 @@ def main(argv: list[str] | None = None) -> int:
         },
     }
     args.out.mkdir(parents=True, exist_ok=True)
-    name = "fit-counted.json" if count is not None and not args.fake_count else \
-        "fit-fakecount.json" if args.fake_count else "fit.json"
+    name = ("fit-fakecount.json" if args.fake_count else "fit-local.json" if args.count_local
+            else "fit-counted.json" if count is not None else "fit.json")
     (args.out / name).write_text(json.dumps({"summary": summary, "tasks": rows}, indent=1) + "\n")
     print(json.dumps(summary, indent=1))
     return 0

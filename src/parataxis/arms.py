@@ -20,7 +20,14 @@ LB_ARM = "Lb"
 LOCAL_ARMS = (L1_ARM, LB_ARM)
 
 
-def run_l1(h, ex, ts, split: str = "", *, model: str = LOCAL_MODEL, max_tokens: int = LOCAL_LANE_MAX_TOKENS) -> bool:
+L1_TASK_SECONDS = 600.0  # the pre-registered 10-minute task cap: no retry starts after it
+
+
+def run_l1(h, ex, ts, split: str = "", *, model: str = LOCAL_MODEL, max_tokens: int = LOCAL_LANE_MAX_TOKENS,
+           task_seconds: float | None = L1_TASK_SECONDS) -> bool:
+    import time
+
+    started = time.monotonic()
     tid = f"{L1_ARM}:{ex.id}"
     contract = h.contract(tid, ex)
     h.create(L1_ARM, tid, ex, split, max_attempts=2,
@@ -30,7 +37,8 @@ def run_l1(h, ex, ts, split: str = "", *, model: str = LOCAL_MODEL, max_tokens: 
                   extra_tags={"tier": "local"})
     ctx = TaskContext(L1_ARM, tid, ex, ts, model, 1, contract, split, h.t2_reviewer(L1_ARM, tid, ex))
     passed, results = h._gate(sub, ctx)
-    if not passed:
+    capped = bool(task_seconds) and time.monotonic() - started >= task_seconds
+    if not passed and not capped:
         feedback = "\n".join(f"[{r.gate}] {r.reason}" for r in results if r.verdict != "pass")
         retry = h.retry_prompt(base, sub.files, feedback, ex)
         sub = h._work(L1_ARM, tid, ex, model, retry, 2, None, max_tokens=max_tokens,
@@ -38,7 +46,7 @@ def run_l1(h, ex, ts, split: str = "", *, model: str = LOCAL_MODEL, max_tokens: 
         ctx = TaskContext(L1_ARM, tid, ex, ts, model, 2, contract, split, h.t2_reviewer(L1_ARM, tid, ex))
         passed, results = h._gate(sub, ctx)
     return h.outcome(L1_ARM, sub, ctx, h.evaluate(sub, ctx), shipped=passed, gate_passed=passed,
-                     attempts=sub.attempt)
+                     attempts=sub.attempt, **({"capped": True} if capped and not passed else {}))
 
 
 def install() -> None:

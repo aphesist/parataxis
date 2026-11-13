@@ -153,6 +153,9 @@ class LaneConfig:
     # sees large files' units, a lane sees its units in full and the rest of the file outlined, and
     # its changes outside its units are undone before the merge. Off in the API study.
     symbol_lanes: bool = False
+    # A task stops starting new rounds once this many seconds have passed since it began (the
+    # pre-registered 10-minute cap of the local track); None: no cap (the API study).
+    task_seconds: float | None = None
 
     def __post_init__(self) -> None:
         models = [self.planner_model, *(m for _, m, _ in self.ladder)]
@@ -171,7 +174,8 @@ class LaneConfig:
                 "max_rounds": self.max_rounds, "plan_repair": self.plan_repair,
                 "lane_prompt_max_tokens": self.lane_prompt_max_tokens,
                 **({"concurrency": self.concurrency} if self.concurrency != 1 else {}),
-                **({"symbol_lanes": True} if self.symbol_lanes else {})}
+                **({"symbol_lanes": True} if self.symbol_lanes else {}),
+                **({"task_seconds": self.task_seconds} if self.task_seconds else {})}
 
 
 # ------------------------------------------------------------------ prompts
@@ -1182,6 +1186,10 @@ def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfi
     arm = arm or (BOARD_ARM if board else LANE_ARM)
     tid = f"{arm}:{ex.id}"
     blackboard: list[str] = []
+    import time as _time
+
+    started = _time.monotonic()
+    capped = False
     contract = h.contract(tid, ex)
     cdict = {"allowed": list(contract.allowed), "protected": list(contract.protected)}
     max_rounds = min(cfg.max_rounds, len(cfg.ladder) - 1)
@@ -1241,6 +1249,7 @@ def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfi
 
     def run_lane(st: _LaneState, rnd: int) -> None:
         step, model, effort, prompt = next_request(st)
+        before = dict(st.sub.files) if st.sub is not None else None
         st.step += 1
         sub = h._work(arm, st.task_id, ex, model, prompt, st.step + 1, effort, scope=lane_scope(st.lane),
                       max_tokens=cfg.lane_max_tokens, system=LANE_SYSTEM,
@@ -1261,6 +1270,11 @@ def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfi
                                                       {"mode": "governed", "action": "undone", "level": "unit",
                                                        "ranges": rejected[:20], "n": len(rejected)})],
                               rnd, "governed")
+        if before is not None and dict(sub.files) == before:
+            # fixation: a lane run again after blame (with the gate feedback, and in Lb the board)
+            # submits exactly what it had: the correction was ignored
+            _emit_clashes(h, tid, plan_id, [Clash("ignored_correction", (st.lane.lane_id,),
+                                                  {"tier": step, "files": sorted(before)})], rnd, "governed")
         st.sub = sub
         if st.first is None:
             st.first = sub
@@ -1361,6 +1375,10 @@ def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfi
         if stuck or rnd >= max_rounds:
             final = rounds[-1]
             break
+        if cfg.task_seconds and _time.monotonic() - started >= cfg.task_seconds:
+            capped = True  # no new round past the task cap: the task ends with this round's merge
+            final = rounds[-1]
+            break
         feedback = "\n".join(f"[{x.gate}] {x.reason}" for x in results if x.verdict != "pass")
         for i in blamed:
             st = states[i]
@@ -1394,7 +1412,8 @@ def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfi
         "arm": arm, "task_id": ex.id, "solved": solved, "shipped": passed, "log_task_id": tid, "split": split,
         "model": "lanes", "evidence": final["evidence"], "gate_passed": passed, "rounds": len(rounds), "k": plan.k,
         "plan_id": plan_id, "fallback": plan.fallback,
-        "tiers": {i: cfg.ladder[s.step][0] for i, s in states.items()}})
+        "tiers": {i: cfg.ladder[s.step][0] for i, s in states.items()},
+        **({"capped": True} if capped else {})})
     return solved
 
 

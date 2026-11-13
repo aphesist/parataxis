@@ -128,3 +128,33 @@ def test_local_lanes_run_concurrently_and_log_the_same_events(tmp_path, exercise
     assert serial_max == 1 and par_max == 3
     assert par_wall < serial_wall - 0.3
     assert par_kinds == serial_kinds  # same events, same order: the single writer is unchanged
+
+
+def test_analysis_reads_timings_tok_s_and_the_primary(tmp_path, exercises, keyed):
+    import importlib.util
+    import json
+    from pathlib import Path
+
+    spec = importlib.util.spec_from_file_location("analyze_local", Path(__file__).resolve().parents[1]
+                                                  / "scripts/analyze_local.py")
+    analyze = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(analyze)
+
+    offline = ProFakeClient(exercises, lanes_k=3)
+    cfg = LaneConfig(ladder=LOCAL_LADDER, max_lanes=8, lane_max_tokens=LOCAL_LANE_MAX_TOKENS, concurrency=3)
+    with FakeVLLM(_responder(offline), key=KEY) as fake:
+        client = LocalRoleClients(local=VLLMClient(fake.url, sleep=lambda s: None), cloud=offline)
+        h, _, _ = harness(tmp_path, exercises, client=client, cfg=cfg)
+        for i in IDS:
+            ex = exercises[i]
+            assert h.run_task("La", ex, ex.test_split, "lanes-probe")
+    tasks = tmp_path / "tasks.txt"
+    tasks.write_text("\n".join(IDS) + "\n")
+    out = tmp_path / "analysis.json"
+    assert analyze.main(["--log", str(tmp_path / "log.jsonl"), "--tasks", str(tasks), "--out", str(out),
+                         "--api-log", str(tmp_path / "missing.jsonl")]) == 0
+    res = json.loads(out.read_text())
+    assert res["primary"]["n"] == 3 and res["primary"]["a_solved"] == 3
+    assert res["tok_s"]["La"]["tasks"] == 3 and res["tok_s"]["La"]["test_gated_tok_s"][0] > 0
+    assert res["throughput"]["La"]["aggregate_tok_s"]["n"] == 3
+    assert res["token_count"].startswith("estimated")

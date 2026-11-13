@@ -147,6 +147,7 @@ class VLLMClient:
     def complete(self, *, model: str, system: str, messages: Sequence[Message], max_tokens: int,
                  effort: str | None = None, tags: Mapping[str, Any] | None = None) -> Completion:
         body = self.build_body(model=model, system=system, messages=messages, max_tokens=max_tokens)
+        t_start = time.time()
         t0 = time.monotonic()
         resp = self._request("/v1/chat/completions", body)
         try:
@@ -161,7 +162,8 @@ class VLLMClient:
         out = int(usage.get("completion_tokens") or 0)
         payload = usage_payload({"input_tokens": max(prompt - cached, 0), "cache_read_input_tokens": cached,
                                  "output_tokens": out}, model, **dict(tags or {}))
-        payload.update({"engine": "vllm", "wall_s": round(wall, 3)})
+        payload.update({"engine": "vllm", "wall_s": round(wall, 3), "t_start": round(t_start, 3),
+                        "t_end": round(t_start + wall, 3)})
         stop = {"length": "max_tokens", "stop": "end_turn"}.get(finish or "", finish or "end_turn")
         return Completion(text=text, model=model, usage=payload, stop_reason=stop, request_id=rid)
 

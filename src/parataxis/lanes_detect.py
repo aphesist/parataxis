@@ -16,6 +16,7 @@ clash. The detectors are heuristics that have not been validated against human l
 | ``unattributable_failure`` | a gate block that blame had to assign to every lane (rule 3) | 3.2 |
 | ``wasted_lane`` | a lane changed nothing, or all its blocks were rejected or dropped | n/a |
 | ``regression_after_escalation`` | an escalated round breaks a visible test that passed in the round before | 2.5 |
+| ``ignored_correction`` | a lane run again after blame (with the gate feedback; in Lb also the board) submits exactly what it had (fixation; emitted by ``lanes.run_la``) | 2.5 |
 """
 
 from __future__ import annotations
@@ -35,7 +36,7 @@ CLASH_KINDS: tuple[str, ...] = (
 MAST: dict[str, str] = {
     "overlapping_scope": "1.2", "scope_violation": "1.2", "interface_mismatch": "2.4", "interface_change_request": "2.4",
     "overwrite": "2.5", "duplicated_work": "1.3", "unattributable_failure": "3.2", "wasted_lane": "",
-    "regression_after_escalation": "2.5",
+    "regression_after_escalation": "2.5", "ignored_correction": "2.5",
 }
 # Substrings of test output that point at a broken cross-lane interface (checked next to a frozen symbol).
 INTERFACE_MARKERS: tuple[str, ...] = ("ImportError", "ModuleNotFoundError", "AttributeError", "TypeError",

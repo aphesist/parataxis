@@ -81,3 +81,23 @@ def test_lb_text_shares_one_prefix_and_feeds_the_board_to_the_next_round(tmp_pat
     arms = {o["arm"] for o in events_of(h, "outcome.scored")}
     assert {"Lb", "Lb-shadow", "Lb-first"} <= arms and "La" not in arms
     assert all(t.startswith("Lb:") for t in {e.payload["task_id"] for e in h.log.events() if e.type == "task.created"})
+
+
+def test_task_cap_stops_new_rounds_and_fixation_is_counted(tmp_path, exercises):
+    from parataxis.lanes import LOCAL_LADDER, LaneConfig
+
+    never_l1 = lambda tid, model, lane: "none" if lane and lane[0] == "L1" else "gold"  # noqa: E731
+    # no cap: L1 is blamed, repaired, and submits the same empty change again -> ignored_correction
+    h, _, _ = harness(tmp_path, exercises, client=ProFakeClient(exercises, policy=never_l1),
+                      cfg=LaneConfig(ladder=LOCAL_LADDER, max_lanes=8))
+    ex = exercises[IDS[0]]
+    assert not h.run_task("La", ex, ex.test_split, "lanes-probe")
+    kinds = [c["kind"] for c in events_of(h, "coordination.detected")]
+    assert "ignored_correction" in kinds
+    # a cap already reached: no repair round starts, and the outcome says so
+    h2, _, client = harness(tmp_path, exercises, client=ProFakeClient(exercises, policy=never_l1),
+                            cfg=LaneConfig(ladder=LOCAL_LADDER, max_lanes=8, task_seconds=1e-9), name="cap.jsonl")
+    assert not h2.run_task("La", ex, ex.test_split, "lanes-probe")
+    o = [x for x in events_of(h2, "outcome.scored") if x.get("arm") == "La" and "gate_seq" not in x][-1]
+    assert o["capped"] is True and o["rounds"] == 1
+    assert len([c for c in client.calls if c["role"] == "worker"]) == 3  # only round 0
