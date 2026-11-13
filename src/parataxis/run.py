@@ -3,6 +3,7 @@
 Importing :mod:`parataxis.lanes` first registers it under ``contraprova.harness.lanes``, so arm La
 runs this repository's lanes. Every other argument goes to ``contraprova.harness.run.main``
 unchanged, for example ``--benchmark swepro --lanes --split lanes-probe --arms La --dry-solve all``.
+The local track's arms ``L1`` and ``Lb`` (:mod:`parataxis.arms`) are available to ``--arms``.
 
 ``--local`` runs the lanes on the local model (the local track): arm La's ladder becomes
 :data:`parataxis.lanes.LOCAL_LADDER` (local lane, then one local repair; no cloud escalation) with
@@ -36,6 +37,10 @@ def main(argv: list[str] | None = None) -> int:
                                                   lane_max_tokens=lanes.LOCAL_LANE_MAX_TOKENS,
                                                   concurrency=concurrency, symbol_lanes=True)
     from contraprova.harness.run import main as harness_main
+
+    from .arms import install
+
+    install()  # arms L1 and Lb
 
     return harness_main(args)
 
