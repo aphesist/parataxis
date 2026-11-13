@@ -193,7 +193,8 @@ def throughput(events: list[dict]) -> dict[str, dict]:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--log", type=Path, required=True)
+    ap.add_argument("--log", type=Path, nargs="+", required=True,
+                    help="one log, or several read in order (a pass resumed into a new log)")
     ap.add_argument("--tasks", type=Path, required=True)
     ap.add_argument("--api-log", type=Path, default=ROOT / "results/swepro-lanes/main/log.jsonl")
     ap.add_argument("--ledger", type=Path, default=None)
@@ -201,7 +202,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, required=True)
     a = ap.parse_args(argv)
 
-    events = load(a.log)
+    events = [e for path in a.log for e in load(path)]
     tasks = [t.strip() for t in a.tasks.read_text().splitlines() if t.strip()]
     outc = arm_outcomes(events)
     created = {e["payload"]["task_id"]: ts(e["ts"]) for e in events if e["type"] == "task.created"}
@@ -210,7 +211,7 @@ def main(argv: list[str] | None = None) -> int:
     count, count_kind = make_counter(a.tokenize_url)
     arms = [x for x in ARMS if any((x, t) in outc for t in tasks)]
 
-    res: dict = {"log": str(a.log), "tasks": len(tasks), "arms": arms, "token_count": count_kind, "seed": SEED}
+    res: dict = {"log": [str(p) for p in a.log] if len(a.log) > 1 else str(a.log[0]), "tasks": len(tasks), "arms": arms, "token_count": count_kind, "seed": SEED}
     res["solve_rates"] = {}
     for arm in arms:
         got = [bool(outc[(arm, t)]["solved"]) for t in tasks if (arm, t) in outc]
