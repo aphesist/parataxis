@@ -246,6 +246,10 @@ these hashes describe the calibrated code. they are re-frozen after b.6, and a c
   2. **repeat the calibration** with the plans replayed: L1, La2 twice, La4, La8; $0 planner, about 2.5 pod hours, about $1.75 gpu inside the $10 cap.
   3. **then:** re-choose n by the same rule, re-check format compliance, output caps and noise, and re-freeze the hashes.
 - **if the new format still fails compliance:** the protocol's next step is another model, which this part would name.
+- **L1 after the repeat calibration: failed the compliance and cap rules after two format changes** (the symbol-unit format, b.5 item 6; the no-tools prompt and tool-call stop, b.5 item 13).
+  - **compliance:** 5 of 17 gated edits failed to parse or apply (29%, threshold 20%).
+  - **caps:** 5 of 25 requests reached its 16K cap (20%, limit 10%).
+  - **decision (parent):** no model swap for now. L1 stays an arm marked "failed compliance". it does not enter the primary (La vs La-shadow).
 - **built (2026-11-13):** the format and its tests (30), and $0 dry runs where the offline workers answer the gold patch in unit blocks. every task solved, with no unit-block error and no edit failure:
   - 12 probe tasks with L1, La and Lb (54 unit blocks from L1);
   - 37 main tasks with L1 and La (194 unit blocks).

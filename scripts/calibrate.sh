@@ -22,6 +22,7 @@ read -r -a PASS_HOURS_BY <<< "${PASS_HOURS_BY:-}"
 REPLAY_LOG=${REPLAY_LOG:-}       # plans bought beforehand (--plans-only): every La pass replays them
 SKIP_CHECKS=${SKIP_CHECKS:-}     # 1: skip the window re-check and the local recount (already done)
 TASKS=${TASKS:-results/local/tasks-probe.txt}  # the probe tasks to run (a subset when not every plan was bought)
+read -r -a TASKS_BY <<< "${TASKS_BY:-}"        # per-pass task files, e.g. "La4c=runs/calib4/tasks-3.txt"
 # GPU_CAP is checked against the whole pod ledger (parataxis.pod), not this session alone
 OUT=${OUT:-results/local-calib}
 RUNS=${RUNS:-runs/calib}
@@ -78,10 +79,11 @@ for p in $PASSES; do
   can_run "$p" || break
   n=$((n + 1))
   if [ $((n % 2)) -eq 1 ]; then order=$order_fwd; else order=$order_rev; fi  # alternate: reuse cached images
+  for kv in "${TASKS_BY[@]}"; do [ "${kv%%=*}" = "$p" ] && order=$(cat "${kv#*=}"); done
   printf '%s\n' $order > "$RUNS/order-$p.txt"
   case "$p" in
     La8) args=(--lanes --local --concurrency 8 --arms La --budget-usd "$PLANNER_CAP") ;;
-    La4) args=(--lanes --local --concurrency 4 --arms La --budget-usd "$PLANNER_CAP") ;;
+    La4|La4c) args=(--lanes --local --concurrency 4 --arms La --budget-usd "$PLANNER_CAP") ;;
     La2|La2b) args=(--lanes --local --concurrency 2 --arms La --budget-usd "$PLANNER_CAP") ;;
     L1)  args=(--local --arms L1 --budget-usd "$PLANNER_CAP") ;;
   esac
