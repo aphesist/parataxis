@@ -21,6 +21,8 @@ PASS_HOURS=${PASS_HOURS:-0.75}   # the most a pass is expected to take; no pass 
 read -r -a PASS_HOURS_BY <<< "${PASS_HOURS_BY:-}"
 REPLAY_LOG=${REPLAY_LOG:-}       # plans bought beforehand (--plans-only): every La pass replays them
 SKIP_CHECKS=${SKIP_CHECKS:-}     # 1: skip the window re-check and the local recount (already done)
+TASKS=${TASKS:-results/local/tasks-probe.txt}  # the probe tasks to run (a subset when not every plan was bought)
+# GPU_CAP is checked against the whole pod ledger (parataxis.pod), not this session alone
 OUT=${OUT:-results/local-calib}
 RUNS=${RUNS:-runs/calib}
 PASSES=${PASSES:-"La8 L1 La4 La2"}
@@ -69,8 +71,8 @@ can_run() {  # enough lifetime and GPU budget left for pass $1?
     || { echo "stop before pass $1 (needs ${need} h): ${left_h} h left, \$${spent} spent"; return 1; }
 }
 
-order_fwd=$(python -c "print(' '.join(open('results/local/tasks-probe.txt').read().split()))")
-order_rev=$(python -c "print(' '.join(reversed(open('results/local/tasks-probe.txt').read().split())))")
+order_fwd=$(python -c "print(' '.join(open('$TASKS').read().split()))")
+order_rev=$(python -c "print(' '.join(reversed(open('$TASKS').read().split())))")
 n=0
 for p in $PASSES; do
   can_run "$p" || break
