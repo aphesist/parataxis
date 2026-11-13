@@ -87,6 +87,7 @@ from .lanes_detect import (
     unresolved_uses,
 )
 from contraprova.harness.outline import render_outline
+from .unit_edits import strip_blocks
 from .symbols import lane_view as _lane_view, merge_span_edits, restrict_to_spans, spans_for, units as _units
 from contraprova.harness.polyglot import sha256_json, sha256_text
 from contraprova.harness.swepro import CHARS_PER_TOKEN, TEST_PATTERNS, ProExercise, ProTestSplit, estimate_tokens, is_test_path
@@ -732,7 +733,7 @@ def board_note(ex: ProExercise, lane_id: str, tier: str, rnd: int, files: Mappin
     diff = unified_patch({p: ex.context.files.get(p, "") for p in files if p in ex.context.files}, dict(files))
     if len(diff) > BOARD_NOTE_DIFF_CHARS:
         diff = diff[:BOARD_NOTE_DIFF_CHARS] + "\n[diff truncated]"
-    text = re.sub(r"(?ms)^\S[^\n]*\n<{7} SEARCH\n.*?\n>{7} REPLACE\n?", "", response or "")
+    text = strip_blocks(response or "")
     text = re.sub(r"```[a-z]*\n?|```", "", text).strip()[:BOARD_NOTE_TEXT_CHARS]
     return (f"### {lane_id}, round {rnd} ({tier})\n" + (f"```diff\n{diff.strip()}\n```\n" if diff.strip() else
             "(no change)\n") + (f"notes: {text}\n" if text else ""))
@@ -975,12 +976,18 @@ def merge_governed(plan: LanePlan, subs: Mapping[str, Submission], base: Mapping
     return MergeResult(files, tuple(errors), tuple(conflicts_l), lanes=contributed)
 
 
+def reply_blocks(text: str, files: Mapping[str, str]):
+    """The edit blocks of a lane's raw reply against the original ``files``. With the symbol-unit
+    edit format installed (:mod:`parataxis.unit_edits`), UNIT/AFTER blocks are expanded first."""
+    return parse_edits(text)
+
+
 def merge_shadow(plan: LanePlan, replies: Mapping[str, str], base: Mapping[str, str]) -> MergeResult:
     """The ungoverned join of the lanes' first replies (no edit repair): every block in plan order,
     with no lane scope (only test files are refused, as in every arm, since the official verifier
     resets them anyway), no interface check and no gate. Two lanes creating the same file: the later
     creation wins. A block whose SEARCH does not match the current text is skipped."""
-    parsed = [(ln, parse_edits(replies.get(ln.lane_id, "")).blocks) for ln in plan.lanes]
+    parsed = [(ln, reply_blocks(replies.get(ln.lane_id, ""), base).blocks) for ln in plan.lanes]
     last_create: dict[str, str] = {}
     creators: dict[str, list[str]] = {}
     for ln, blocks in parsed:
