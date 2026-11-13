@@ -474,3 +474,78 @@ def scope_violations(owned: Sequence[Span], before: Mapping[str, str], after: Ma
             if not ok:
                 out.append(ScopeViolation(path, at, "inserted"))
     return out
+
+
+# ------------------------------------------------------------------ restricting and merging span edits
+
+
+def _opcodes(base: str, new: str):
+    a, b = base.split("\n"), new.split("\n")
+    return a, b, [op for op in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes() if op[0] != "equal"]
+
+
+def _in_scope(spans: Sequence[Span], i1: int, i2: int, base_lines: Sequence[str]) -> bool:
+    """Whether the base-line range [i1, i2) (0-based, half-open) may be changed: replaced/deleted
+    lines all inside one owned span, or an insertion inside a span, at its edges, or in the blank
+    lines right after it."""
+    if i2 > i1:
+        return any(s.start <= i1 + 1 and i2 <= s.end for s in spans)
+    at = i1  # insertion after base line `at` (1-based count of lines before it)
+    if any(s.start - 1 <= at <= s.end for s in spans):
+        return True
+    k = at
+    while k >= 1 and not base_lines[k - 1].strip():
+        k -= 1
+    return any(s.end == k for s in spans)
+
+
+def restrict_to_spans(base: str, new: str, spans: Sequence[Span]) -> tuple[str, list[tuple[int, int]]]:
+    """``new`` with every change outside ``spans`` undone: the text a lane may contribute to a file
+    it shares with other lanes, and the rejected base ranges (1-based first line, line count)."""
+    a, b, ops = _opcodes(base, new)
+    out: list[str] = []
+    rejected: list[tuple[int, int]] = []
+    pos = 0
+    for tag, i1, i2, j1, j2 in ops:
+        out += a[pos:i1]
+        if _in_scope(spans, i1, i2, a):
+            out += b[j1:j2]
+        else:
+            out += a[i1:i2]
+            rejected.append((i1 + 1, i2 - i1))
+        pos = i2
+    out += a[pos:]
+    return "\n".join(out), rejected
+
+
+def merge_span_edits(base: str, versions: Sequence[tuple[str, str]]) -> tuple[str, list[tuple[str, str, int]]]:
+    """Merge several lanes' versions of one file, each confined to its own spans of the same base.
+    ``versions`` is (lane id, text) in plan order. Changes are applied to the base in line order;
+    insertions at the same point keep plan order. Two changes whose base ranges overlap are a
+    conflict: the earlier lane's change is kept and (later lane, earlier lane, base line) reported."""
+    a = base.split("\n")
+    changes: list[tuple[int, int, int, str, list[str]]] = []  # (i1, i2, lane order, lane, lines)
+    for order, (lane, text) in enumerate(versions):
+        _, b, ops = _opcodes(base, text)
+        changes += [(i1, i2, order, lane, b[j1:j2]) for _, i1, i2, j1, j2 in ops]
+    changes.sort(key=lambda c: (c[0], c[1], c[2]))
+    out: list[str] = []
+    conflicts: list[tuple[str, str, int]] = []
+    pos, last_end, last_lane = 0, -1, None
+    for i1, i2, _, lane, lines in changes:
+        overlap = i1 < pos or (i2 > i1 and i1 < last_end)
+        if overlap:
+            conflicts.append((lane, last_lane or "", i1 + 1))
+            continue
+        out += a[pos:i1]
+        out += lines
+        pos = max(pos, i2)
+        last_end, last_lane = max(last_end, i2), lane
+    out += a[pos:]
+    return "\n".join(out), conflicts
+
+
+def spans_for(path: str, source: str, names: Iterable[str], *, split_class_lines: int = 120) -> list[Span]:
+    """The spans of ``path`` named ``names`` (unit names as :func:`units` gives them)."""
+    want = set(names)
+    return [u for u in units(path, source, split_class_lines=split_class_lines) if u.name in want]

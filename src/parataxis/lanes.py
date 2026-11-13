@@ -87,6 +87,7 @@ from .lanes_detect import (
     unresolved_uses,
 )
 from contraprova.harness.outline import render_outline
+from .symbols import lane_view as _lane_view, merge_span_edits, restrict_to_spans, spans_for, units as _units
 from contraprova.harness.polyglot import sha256_json, sha256_text
 from contraprova.harness.swepro import CHARS_PER_TOKEN, TEST_PATTERNS, ProExercise, ProTestSplit, estimate_tokens, is_test_path
 
@@ -147,6 +148,10 @@ class LaneConfig:
     # Lanes whose model is local are requested concurrently, at most this many at once (the local
     # track's calibrated N); 1 keeps the API study's one-after-another order. See _prefetch_round.
     concurrency: int = 1
+    # Lanes may own units (functions, classes, methods) of a file instead of whole files: the planner
+    # sees large files' units, a lane sees its units in full and the rest of the file outlined, and
+    # its changes outside its units are undone before the merge. Off in the API study.
+    symbol_lanes: bool = False
 
     def __post_init__(self) -> None:
         models = [self.planner_model, *(m for _, m, _ in self.ladder)]
@@ -164,7 +169,8 @@ class LaneConfig:
                 "ladder": [list(x) for x in self.ladder], "lane_max_tokens": self.lane_max_tokens,
                 "max_rounds": self.max_rounds, "plan_repair": self.plan_repair,
                 "lane_prompt_max_tokens": self.lane_prompt_max_tokens,
-                **({"concurrency": self.concurrency} if self.concurrency != 1 else {})}
+                **({"concurrency": self.concurrency} if self.concurrency != 1 else {}),
+                **({"symbol_lanes": True} if self.symbol_lanes else {})}
 
 
 # ------------------------------------------------------------------ prompts
@@ -245,6 +251,23 @@ owns it. Include every function, method or class named in the task's Interface s
 Reply with one JSON object in a ```json code block and nothing else, in this schema:
 {schema}"""
 
+PLAN_UNITS_RULES = """
+Units (below file level):
+- A large file may be split between lanes by its units, listed under it as path::name (functions, classes, \
+methods of large classes, or line blocks of non-code files). A lane that owns only some units of a file lists \
+them in "units" (for example "units": ["src/app.py::Handler.post"]) and does not list that file in "files". \
+Each unit belongs to at most one lane; a file is either owned whole by one lane (in its "files") or split by \
+units, never both. Units nobody owns stay unchanged.
+- A lane sees its units in full and only an outline of the rest of their file, and may add new helpers directly \
+below its units. Prefer one lane per independent piece of work, up to {max_lanes}.
+"""
+
+PLAN_SCHEMA_UNITS = PLAN_SCHEMA.replace('"files": ["path"],', '"files": ["path"], "units": ["path::name"],')
+
+UNIT_LIST_MIN_LINES = 150  # files at least this long get their units listed for the planner
+UNIT_LIST_MAX = 60  # at most this many units listed per file
+SPLIT_CLASS_LINES = 120  # a class longer than this is split into its methods
+
 PLAN_REPAIR = """Your lane plan could not be used:
 
 {errors}
@@ -279,15 +302,25 @@ class Lane:
     exports: tuple[str, ...] = ()  # interfaces it provides
     imports: tuple[str, ...] = ()  # interfaces it uses
     tests: tuple[str, ...] = ()  # visible tests assigned by the plan
+    # "path::unit" ids: in these paths (also in ``allowed``) the lane owns only these units
+    units: tuple[str, ...] = ()
 
     @property
     def files(self) -> tuple[str, ...]:
         return tuple(sorted({*self.allowed, *self.new_files}))
 
+    def unit_names(self, path: str) -> tuple[str, ...]:
+        return tuple(u.split("::", 1)[1] for u in self.units if u.split("::", 1)[0] == path)
+
+    @property
+    def unit_paths(self) -> tuple[str, ...]:
+        return tuple(sorted({u.split("::", 1)[0] for u in self.units}))
+
     def to_dict(self) -> dict[str, Any]:
         return {"lane_id": self.lane_id, "allowed": list(self.allowed), "new_files": list(self.new_files),
                 "goal": self.goal, "symbols": list(self.symbols), "exports": list(self.exports),
-                "imports": list(self.imports), "tests": list(self.tests)}
+                "imports": list(self.imports), "tests": list(self.tests),
+                **({"units": list(self.units)} if self.units else {})}
 
 
 @dataclass(frozen=True)
@@ -425,7 +458,8 @@ def seed_interfaces(planned: Sequence[Interface], task_iface: Sequence[Interface
 
 
 def parse_plan(text: str, ex: ProExercise, ts: ProTestSplit, *, max_lanes: int = MAX_LANES,
-               lane_tokens=None, lane_prompt_max_tokens: int = LANE_PROMPT_MAX_TOKENS) -> PlanParse:
+               lane_tokens=None, lane_prompt_max_tokens: int = LANE_PROMPT_MAX_TOKENS,
+               symbol_lanes: bool = False) -> PlanParse:
     """Validate a planner reply strictly. ``lane_tokens(plan, lane)`` (optional) estimates a lane's
     prompt; a lane above ``lane_prompt_max_tokens`` makes the plan invalid. Unknown test names are
     dropped with a warning; everything about files is an error."""
@@ -444,6 +478,14 @@ def parse_plan(text: str, ex: ProExercise, ts: ProTestSplit, *, max_lanes: int =
     raw_lanes: list[tuple[str, tuple[str, ...]]] = []
     lanes: list[Lane] = []
     owners: dict[str, list[str]] = {}
+    unit_owners: dict[str, list[str]] = {}  # "path::name" -> lanes
+    unit_cache: dict[str, set[str]] = {}
+
+    def unit_names(path: str) -> set[str]:
+        if path not in unit_cache:
+            unit_cache[path] = {u.name for u in _units(path, ex.context.files[path],
+                                                        split_class_lines=SPLIT_CLASS_LINES)}
+        return unit_cache[path]
     for n, item in enumerate(raw, 1):
         if not isinstance(item, dict):
             errors.append(f"lane {n} is not an object")
@@ -456,7 +498,18 @@ def parse_plan(text: str, ex: ProExercise, ts: ProTestSplit, *, max_lanes: int =
             errors.append(f"lane_id {lid!r} is used twice")
         files = tuple(dict.fromkeys(_strs(item.get("files") or item.get("allowed"))))
         files += tuple(f for f in _strs(item.get("new_files")) if f not in files)
-        raw_lanes.append((lid, files))
+        lane_units: list[str] = []
+        for uid in (_strs(item.get("units")) if symbol_lanes else ()):
+            path, sep, name = uid.partition("::")
+            if not sep or path not in existing:
+                errors.append(f"lane {lid}: unit {uid!r} is not path::name for one of the existing files to assign")
+            elif name not in unit_names(path):
+                errors.append(f"lane {lid}: {path} has no unit {name!r}")
+            elif uid not in lane_units:
+                lane_units.append(uid)
+                unit_owners.setdefault(uid, []).append(lid)
+        unit_paths = tuple(dict.fromkeys(u.split("::", 1)[0] for u in lane_units))
+        raw_lanes.append((lid, files + tuple(lane_units)))
         for f in files:
             if is_test_path(f):
                 errors.append(f"lane {lid}: {f} is a test file; lanes never own tests")
@@ -464,22 +517,29 @@ def parse_plan(text: str, ex: ProExercise, ts: ProTestSplit, *, max_lanes: int =
                 errors.append(f"lane {lid}: {f} is not one of the files to assign")
             else:
                 owners.setdefault(f, []).append(lid)
-        if not files:
+        if not files and not lane_units:
             errors.append(f"lane {lid} has no files")
         tests = _strs(item.get("tests"))
         unknown = [t for t in tests if t not in visible]
         if unknown:
             warnings.append(f"lane {lid}: {len(unknown)} test name(s) not among the visible tests were dropped")
-        lanes.append(Lane(lid, tuple(sorted(f for f in files if f in existing)), tuple(sorted(f for f in files if f in new)),
+        lanes.append(Lane(lid, tuple(sorted({*(f for f in files if f in existing), *unit_paths})),
+                          tuple(sorted(f for f in files if f in new)),
                           str(item.get("goal") or "").strip()[:2000], _strs(item.get("symbols")),
                           _strs(item.get("provides") or item.get("exports")), _strs(item.get("uses") or item.get("imports")),
-                          tuple(t for t in tests if t in visible)))
+                          tuple(t for t in tests if t in visible), tuple(lane_units)))
     if len(raw) > max_lanes:
         errors.append(f"{len(raw)} lanes; at most {max_lanes} are allowed")
     for f, ls in sorted(owners.items()):
         if len(ls) > 1:
             errors.append(f"{f} is assigned to lanes {', '.join(ls)}; each file belongs to exactly one lane")
-    for f in sorted(task_files - set(owners)):
+    split_paths = {u.split("::", 1)[0] for u in unit_owners}
+    for u, ls in sorted(unit_owners.items()):
+        if len(ls) > 1:
+            errors.append(f"unit {u} is assigned to lanes {', '.join(ls)}; each unit belongs to at most one lane")
+    for f in sorted(split_paths & set(owners)):
+        errors.append(f"{f} is both owned whole (lane {', '.join(owners[f])}) and split by units; choose one")
+    for f in sorted(task_files - set(owners) - split_paths):
         errors.append(f"{f} is assigned to no lane")
     ifaces: list[Interface] = []
     raw_if = d.get("interfaces", [])
@@ -556,7 +616,7 @@ def lane_contract(task_id: str, lane: Lane) -> LaneContract:
 def lane_prompt(ex: ProExercise, ts: ProTestSplit, plan: LanePlan, lane: Lane,
                 outline_max_chars: int = LANE_OUTLINE_MAX_CHARS) -> str:
     t = ex.task
-    own = {p: ex.context.files[p] for p in lane.allowed if p in ex.context.files}
+    own = lane_files_view(ex, lane)
     others = {p: c for p, c in ex.context.files.items() if p not in lane.files}
     other_new = tuple(p for p in ex.context.new_files if p not in lane.files)
     outline = render_outline(others, new_files=other_new, max_chars=outline_max_chars) if (others or other_new) else "(none)"
@@ -571,6 +631,48 @@ def lane_prompt(ex: ProExercise, ts: ProTestSplit, plan: LanePlan, lane: Lane,
         goal=lane.goal or "(see the problem statement)", frozen=_bullets(frozen), provides=_bullets(lane.exports),
         uses=_bullets(lane.imports), files=format_files(own) or "(none: this lane only creates files)",
         new_files=_bullets(lane.new_files), outline=outline, tests=note + _bullets(tests))
+
+
+UNITS_NOTE = ("[units] in this file you own only {names}: they are shown in full, the rest of the file only "
+              "as an outline. Change only your units; you may add new helpers directly below them.\n")
+
+
+def lane_unit_spans(ex: ProExercise, lane: Lane, path: str):
+    return spans_for(path, ex.context.files[path], lane.unit_names(path), split_class_lines=SPLIT_CLASS_LINES)
+
+
+def lane_files_view(ex: ProExercise, lane: Lane) -> dict[str, str]:
+    """A lane's own files as it sees them: whole files in full; files it shares by units as lane views
+    (its units in full, the rest outlined), headed by a note naming its units."""
+    out = {}
+    for p in lane.allowed:
+        if p not in ex.context.files:
+            continue
+        if p in lane.unit_paths:
+            src = ex.context.files[p]
+            view = _lane_view(p, src, lane_unit_spans(ex, lane, p),
+                              _units(p, src, split_class_lines=SPLIT_CLASS_LINES))
+            out[p] = UNITS_NOTE.format(names=", ".join(lane.unit_names(p))) + view
+        else:
+            out[p] = ex.context.files[p]
+    return out
+
+
+def restrict_lane_files(ex: ProExercise, lane: Lane, files: Mapping[str, str]) -> tuple[dict[str, str], list[dict]]:
+    """Undo a lane's changes outside its units in the files it shares by units. Returns the kept files
+    and one record per rejected base range."""
+    kept = dict(files)
+    rejected: list[dict] = []
+    for p in lane.unit_paths:
+        if p not in kept or p not in ex.context.files:
+            continue
+        text, rej = restrict_to_spans(ex.context.files[p], kept[p], lane_unit_spans(ex, lane, p))
+        rejected += [{"lane": lane.lane_id, "path": p, "line": ln, "lines": n} for ln, n in rej]
+        if text == ex.context.files[p]:
+            kept.pop(p)
+        else:
+            kept[p] = text
+    return kept, rejected
 
 
 def lane_retry_prompt(base: str, ex: ProExercise, lane: Lane, previous: Mapping[str, str], feedback: str,
@@ -681,6 +783,12 @@ def interface_check(plan: LanePlan, base: Mapping[str, str], merged: Mapping[str
 def _owner(plan: LanePlan, i: Interface) -> str | None:
     if i.owner:
         return i.owner
+    short = last_component(i.symbol)
+    by_unit = next((ln.lane_id for ln in plan.lanes for u in ln.units
+                    if (not i.path or u.split("::", 1)[0] == i.path)
+                    and short in u.split("::", 1)[1].split(".")), None)
+    if by_unit:
+        return by_unit
     if i.path and plan.owner_of(i.path):
         return plan.owner_of(i.path)
     short = last_component(i.symbol)
@@ -710,7 +818,7 @@ class MergeResult:
     lanes: Mapping[str, tuple[str, ...]] = field(default_factory=dict)  # lane -> paths it contributed
 
 
-def merge_governed(plan: LanePlan, subs: Mapping[str, Submission]) -> MergeResult:
+def merge_governed(plan: LanePlan, subs: Mapping[str, Submission], base: Mapping[str, str] | None = None) -> MergeResult:
     """Union of the lanes' changed files, in plan order. Lane scopes are disjoint, so a path changed
     by two lanes means the plan or a scope check failed: it is reported as a conflict and the first
     lane keeps it. A lane's parse/apply/truncation errors are carried into T0.edits; blocks its scope
@@ -731,9 +839,26 @@ def merge_governed(plan: LanePlan, subs: Mapping[str, Submission]) -> MergeResul
                 mine.append(p)
         contributed[ln.lane_id] = tuple(mine)
         errors += [f"lane {ln.lane_id}: {e}" for e in getattr(sub, "edit_errors", ()) if ": rejected, " not in e]
-    conflicts = tuple((p, tuple(ls)) for p, ls in sorted(by.items()) if len(ls) > 1)
-    errors += [f"{p} was changed by lanes {', '.join(ls)}; kept lane {ls[0]}'s version" for p, ls in conflicts]
-    return MergeResult(files, tuple(errors), conflicts, lanes=contributed)
+    # files split by units: every lane's changes are confined to its own units of the same base, so
+    # they merge line-range by line-range; only overlapping ranges are conflicts
+    split = {p for ln in plan.lanes for p in ln.unit_paths}
+    conflicts_l = []
+    for p, ls in sorted(by.items()):
+        if len(ls) < 2:
+            continue
+        if p in split and base is not None and p in base:
+            merged, clash = merge_span_edits(base[p], [(i, subs[i].files[p]) for i in ls])
+            files[p] = merged
+            for i in ls[1:]:
+                contributed[i] = tuple(sorted({*contributed.get(i, ()), p}))
+            if clash:
+                conflicts_l.append((p, tuple(dict.fromkeys(x for c in clash for x in (c[1], c[0])))))
+                errors += [f"{p}: lane {a}'s change at line {line} overlaps lane {b}'s; kept lane {b}'s"
+                           for a, b, line in clash]
+        else:
+            conflicts_l.append((p, tuple(ls)))
+            errors.append(f"{p} was changed by lanes {', '.join(ls)}; kept lane {ls[0]}'s version")
+    return MergeResult(files, tuple(errors), tuple(conflicts_l), lanes=contributed)
 
 
 def merge_shadow(plan: LanePlan, replies: Mapping[str, str], base: Mapping[str, str]) -> MergeResult:
@@ -855,16 +980,33 @@ class _LaneState:
     last_feedback: str = ""
 
 
-def _planner_context(h, ex: ProExercise, ts: ProTestSplit, max_lanes: int) -> str:
-    files = [f"{p} ({ex.context.files[p].count(chr(10)) + 1} lines)" for p in sorted(ex.context.files)]
-    files += [f"{p} (new file)" for p in sorted(ex.context.new_files)]
-    return h.lead_context(ex, ts) + PLAN_REQUEST.format(max_lanes=max_lanes, files=_bullets(files), schema=PLAN_SCHEMA)
+def _planner_context(h, ex: ProExercise, ts: ProTestSplit, max_lanes: int, symbol_lanes: bool = False) -> str:
+    if not symbol_lanes:
+        files = [f"{p} ({ex.context.files[p].count(chr(10)) + 1} lines)" for p in sorted(ex.context.files)]
+        files += [f"{p} (new file)" for p in sorted(ex.context.new_files)]
+        return h.lead_context(ex, ts) + PLAN_REQUEST.format(max_lanes=max_lanes, files=_bullets(files),
+                                                            schema=PLAN_SCHEMA)
+    lines = []
+    for p in sorted(ex.context.files):
+        src = ex.context.files[p]
+        n = src.count("\n") + 1
+        lines.append(f"- {p} ({n} lines)")
+        if n >= UNIT_LIST_MIN_LINES:
+            us = _units(p, src, split_class_lines=SPLIT_CLASS_LINES)
+            for u in us[:UNIT_LIST_MAX]:
+                lines.append(f"  - {u.unit_id} ({u.lines} lines)")
+            if len(us) > UNIT_LIST_MAX:
+                lines.append(f"  - ... {len(us) - UNIT_LIST_MAX} more units (assign this file whole to reach them)")
+    lines += [f"- {p} (new file)" for p in sorted(ex.context.new_files)]
+    request = PLAN_REQUEST.format(max_lanes=max_lanes, files="\n".join(lines) or "(none)", schema=PLAN_SCHEMA_UNITS)
+    request = request.replace("\n## Files to assign", PLAN_UNITS_RULES.format(max_lanes=max_lanes) + "\n## Files to assign")
+    return h.lead_context(ex, ts) + request
 
 
 def plan_lanes(h, ex: ProExercise, ts: ProTestSplit, tid: str, cfg: LaneConfig) -> tuple[LanePlan, dict[str, Any]]:
     """The planner request (and at most one plan-repair turn). Returns the plan (the single-lane
     fallback when the reply stays invalid) and the ``lane.planned`` extras."""
-    user = _planner_context(h, ex, ts, cfg.max_lanes)
+    user = _planner_context(h, ex, ts, cfg.max_lanes, cfg.symbol_lanes)
 
     def lane_tokens(plan: LanePlan, lane: Lane) -> int:
         return estimate_tokens(LANE_SYSTEM + lane_prompt(ex, ts, plan, lane, cfg.outline_max_chars))
@@ -873,7 +1015,7 @@ def plan_lanes(h, ex: ProExercise, ts: ProTestSplit, tid: str, cfg: LaneConfig) 
               max_tokens=cfg.planner_max_tokens, effort=cfg.planner_effort)
     c = h.call(user=user, extra_tags={"lane_role": "planner"}, **kw)
     got = parse_plan(c.text, ex, ts, max_lanes=cfg.max_lanes, lane_tokens=lane_tokens,
-                     lane_prompt_max_tokens=cfg.lane_prompt_max_tokens)
+                     lane_prompt_max_tokens=cfg.lane_prompt_max_tokens, symbol_lanes=cfg.symbol_lanes)
     info: dict[str, Any] = {"repair_used": False, "parse_errors": list(got.errors), "warnings": list(got.warnings),
                             "stop_reason": c.stop_reason, "response": c.text}
     raw = list(got.raw_lanes)
@@ -882,7 +1024,7 @@ def plan_lanes(h, ex: ProExercise, ts: ProTestSplit, tid: str, cfg: LaneConfig) 
         c2 = h.call(user=PLAN_REPAIR.format(errors=_bullets(got.errors[:20])), history=history,
                     extra_tags={"lane_role": "planner", "repair": True}, **kw)
         got = parse_plan(c2.text, ex, ts, max_lanes=cfg.max_lanes, lane_tokens=lane_tokens,
-                         lane_prompt_max_tokens=cfg.lane_prompt_max_tokens)
+                         lane_prompt_max_tokens=cfg.lane_prompt_max_tokens, symbol_lanes=cfg.symbol_lanes)
         info.update(repair_used=True, repair_errors=list(got.errors), repair_response=c2.text,
                     repair_stop_reason=c2.stop_reason)
         info["warnings"] += list(got.warnings)
@@ -988,6 +1130,16 @@ def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfi
                                                               "lane_id": st.lane.lane_id, "status": "rejected",
                                                               "reason": "interfaces are frozen for this task", **r})
             st.__dict__.setdefault("requests", []).append(r)
+        if st.lane.units:
+            # a lane sharing files by units: undo its changes outside its units before any merge (the
+            # shadow merge still sees the raw reply); each undone range is a counted scope violation
+            kept, rejected = restrict_lane_files(ex, st.lane, sub.files)
+            if rejected:
+                sub = replace(sub, files=kept)
+                _emit_clashes(h, tid, plan_id, [Clash("scope_violation", (st.lane.lane_id,),
+                                                      {"mode": "governed", "action": "undone", "level": "unit",
+                                                       "ranges": rejected[:20], "n": len(rejected)})],
+                              rnd, "governed")
         st.sub = sub
         if st.first is None:
             st.first = sub
@@ -1029,7 +1181,7 @@ def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfi
         for st in to_run:
             _emit_clashes(h, tid, plan_id, lane_round_clashes(st.lane.lane_id, st.sub, st.__dict__.pop("requests", [])),
                           rnd, "governed")
-        merged = merge_governed(plan, {i: s.sub for i, s in states.items()})
+        merged = merge_governed(plan, {i: s.sub for i, s in states.items()}, ex.context.files)
         _emit_clashes(h, tid, plan_id, merge_conflicts(merged.conflicts, "governed"), rnd, "governed")
         if rnd == 0 or escalated:
             _emit_clashes(h, tid, plan_id, duplicated_work({i: s.sub.files for i, s in states.items()},
@@ -1285,7 +1437,7 @@ def lane_preflight(h, ex: ProExercise, ts: ProTestSplit, count_tokens, cfg: Lane
     lane_model = cfg.ladder[0][1]  # Haiku in the API study; the local model on the local track
     ladder_models = {m for _, m, _ in cfg.ladder}
     p_in = int(count_tokens(model=cfg.planner_model, system=h.lead_system,
-                            messages=[Message("user", _planner_context(h, ex, ts, cfg.max_lanes))]))
+                            messages=[Message("user", _planner_context(h, ex, ts, cfg.max_lanes, cfg.symbol_lanes))]))
     lane_in = tuple(int(count_tokens(model=lane_model, system=LANE_SYSTEM,
                                      messages=[Message("user", lane_prompt(ex, ts, plan, ln, cfg.outline_max_chars))]))
                     for ln in plan.lanes)

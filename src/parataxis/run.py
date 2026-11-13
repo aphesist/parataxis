@@ -7,7 +7,7 @@ unchanged, for example ``--benchmark swepro --lanes --split lanes-probe --arms L
 ``--local`` runs the lanes on the local model (the local track): arm La's ladder becomes
 :data:`parataxis.lanes.LOCAL_LADDER` (local lane, then one local repair; no cloud escalation) with
 :data:`~parataxis.lanes.LOCAL_LANE_MAX_TOKENS` per lane, ``--max-lanes`` may go up to 8, and the
-local model is priced at $0. ``--concurrency N`` sends up to N local lane requests at once (default
+local model is priced at $0, and lanes may own units of a file (symbol-level lanes). ``--concurrency N`` sends up to N local lane requests at once (default
 8). Pair it with ``--client parataxis.local:LocalRoleClients`` (local lanes
 over HTTPS to the pod's vLLM, the Opus planner through the Claude API).
 """
@@ -34,7 +34,7 @@ def main(argv: list[str] | None = None) -> int:
 
         swepro_run.LaneConfig = functools.partial(lanes.LaneConfig, ladder=lanes.LOCAL_LADDER,
                                                   lane_max_tokens=lanes.LOCAL_LANE_MAX_TOKENS,
-                                                  concurrency=concurrency)
+                                                  concurrency=concurrency, symbol_lanes=True)
     from contraprova.harness.run import main as harness_main
 
     return harness_main(args)

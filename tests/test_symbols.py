@@ -193,3 +193,29 @@ def test_units_never_overlap_and_stay_in_the_file(path, src):
         assert a.end < b.start
     assert all(1 <= u.start <= u.end <= n for u in us)
     assert all(isinstance(u, Span) for u in us)
+
+
+def test_restrict_keeps_owned_changes_and_undoes_the_rest():
+    from parataxis.symbols import restrict_to_spans, spans_for
+
+    owned = spans_for("m.py", PY, ["alpha"])
+    new = (PY.replace("return x + 1", "return x + 2").replace("return 2", "return 3")
+           .replace("    return x + 2\n\n\n", "    return x + 2\n\n\ndef helper():\n    return 0\n\n\n"))
+    kept, rejected = restrict_to_spans(PY, new, owned)
+    assert "return x + 2" in kept and "def helper" in kept  # own body and a helper right below
+    assert "return 3" not in kept and "return 2" in kept  # another unit's change undone
+    assert len(rejected) == 1
+
+
+def test_merge_span_edits_combines_lanes_and_reports_overlaps():
+    from parataxis.symbols import merge_span_edits
+
+    a = PY.replace("return x + 1", "return x + 2")
+    b = PY.replace("return 2", "return 22")
+    merged, conflicts = merge_span_edits(PY, [("L1", a), ("L2", b)])
+    assert "return x + 2" in merged and "return 22" in merged and not conflicts
+    c = PY.replace("return x + 1", "return x * 9")
+    merged2, conflicts2 = merge_span_edits(PY, [("L1", a), ("L2", c)])
+    assert "return x + 2" in merged2 and "x * 9" not in merged2
+    assert conflicts2 and conflicts2[0][:2] == ("L2", "L1")
+    assert merge_span_edits(PY, [("L1", PY)]) == (PY, [])
