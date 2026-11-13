@@ -91,7 +91,7 @@ the logs, reports and analyses are under [`results/`](results): `swepro-lanes` i
 - `src/parataxis/symbols.py`: symbol-level units, lane views, packing and the span scope gate.
 - `scripts/fit_symbol_lanes.py`: the fit study.
 - `results/`: committed evidence. `swepro-lanes` is from contraprova; `symbol-lanes-fit` is this project's.
-- `docs/design.md`: the local track. `docs/local-plan.md`: the plan, benchmark choice and cost.
+- `docs/design.md`: the local track. `docs/local-plan.md`: the plan, benchmark choice and cost. `docs/backlog.md`: work planned for later, such as an inference engine of parataxis's own.
 
 ## licence
 
