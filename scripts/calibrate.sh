@@ -17,6 +17,7 @@ PASS_HOURS=${PASS_HOURS:-0.75}   # the most a pass is expected to take; no pass 
 OUT=${OUT:-results/local-calib}
 RUNS=${RUNS:-runs/calib}
 PASSES=${PASSES:-"La8 L1 La4 La2"}
+TASK_LIMIT=${TASK_LIMIT:-}       # only the first N tasks of each pass (dry runs)
 mkdir -p "$OUT" "$RUNS"
 read -r -a POD_ARGS <<< "${POD_ARGS:-}"
 pod() { python -m parataxis.pod "${POD_ARGS[@]}" "$@"; }
@@ -67,7 +68,7 @@ for p in $PASSES; do
   [ "$p" = La4 ] || [ "$p" = La2 ] && replay="$RUNS/La8.jsonl"
   echo "pass $p: start $(date -u +%H:%M:%S)"
   PARATAXIS_PLAN_REPLAY="$replay" pod exec --pod "$pid" -- python -m parataxis.run "${COMMON[@]}" "${args[@]}" \
-    --task-file "$RUNS/order-$p.txt" --log "$RUNS/$p.jsonl" > "$RUNS/$p.out" 2>&1 \
+    --task-file "$RUNS/order-$p.txt" ${TASK_LIMIT:+--limit "$TASK_LIMIT"} --log "$RUNS/$p.jsonl" > "$RUNS/$p.out" 2>&1 \
     || echo "pass $p ended with exit $? (see $RUNS/$p.out)"
   echo "pass $p: end $(date -u +%H:%M:%S)"
 done
