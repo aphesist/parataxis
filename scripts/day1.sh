@@ -2,7 +2,7 @@
 # Day 1: one RTX 5090 pod, the smoke test, terminate (PREREGISTRATION.md, "day 1").
 # The pod is always terminated on exit, never stopped; a watchdog terminates it if idle or past its
 # lifetime. Nothing here prints the per-pod vLLM key. A dry run against fakes:
-#   POD_ARGS="--api http://127.0.0.1:8100/v1 --url http://127.0.0.1:8000" scripts/day1.sh
+#   POD_ARGS="--api http://127.0.0.1:8100/v2 --url http://127.0.0.1:8000" scripts/day1.sh
 set -euo pipefail
 NAME=${NAME:-parataxis-day1-$(date -u +%Y%m%dT%H%M%S)}
 MAX_HOURS=${MAX_HOURS:-1.5}

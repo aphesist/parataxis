@@ -29,13 +29,14 @@ def test_create_writes_a_private_key_and_never_uses_stop(dirs):
         key = kp.read_text()
         assert len(key) >= 40 and stat.S_IMODE(os.stat(kp).st_mode) == 0o600
         body = rp_fake.calls[0][2]
-        assert body["gpuTypeIds"] == [pod.GPU_5090] and body["ports"] == ["8000/http"]
+        assert body["gpu"] == {"id": pod.GPU_5090, "count": 1} and body["ports"] == ["8000/http"]
+        assert body["cloud"] == "COMMUNITY" and body["entrypoint"] == ["bash", "-lc"]
         assert body["env"]["VLLM_API_KEY"] == key
-        assert key not in " ".join(body["dockerStartCmd"])  # the key is never on a command line
-        assert "--api-key" not in " ".join(body["dockerStartCmd"])
+        assert key not in " ".join(body["cmd"])  # the key is never on a command line
+        assert "--api-key" not in " ".join(body["cmd"])
         pod.terminate(rp, pid, ledger=dirs["ledger"], sleep=lambda s: None)
         assert pid not in rp_fake.pods
-        assert not any("/stop" in c[1] for c in rp_fake.calls)
+        assert not any("/stop" in c[1] or "/action" in c[1] for c in rp_fake.calls)
     spend = pod.ledger_spend(dirs["ledger"])
     assert spend["pods"][pid]["open"] is False
 
@@ -80,7 +81,7 @@ def test_wait_smoke_exec_watchdog_and_reap(dirs, monkeypatch, tmp_path):
         assert reason == "idle 1 min" and pid not in rp_fake.pods
 
         a = pod.create(rp, "parataxis-a", max_hours=0.5, **dirs)
-        rp_fake.pods["other"] = {"id": "other", "name": "someone-else", "desiredStatus": "RUNNING"}
+        rp_fake.pods["other"] = {"id": "other", "name": "someone-else", "status": "RUNNING"}
         assert pod.reap(rp, ledger=dirs["ledger"]) == [a]
         assert "other" in rp_fake.pods  # only parataxis-* pods are reaped
 

@@ -42,12 +42,13 @@ import subprocess
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
-API = "https://rest.runpod.io/v1"
+API = "https://api.runpod.io/v2"  # RunPod REST API v2 (openapi: https://api.runpod.io/v2/openapi.json)
 GPU_5090 = "NVIDIA GeForce RTX 5090"
 PORT = 8000
 POD_DIR = Path("runs/pods")
@@ -81,8 +82,9 @@ def vllm_args(model: str = DEFAULT_MODEL, *, max_model_len: int = 32768, max_num
 
 def start_script(serve_args: Sequence[str], max_seconds: int) -> str:
     """The pod's entry: the in-pod lifetime guard in the background, then vLLM in the foreground."""
-    py = ("import os,urllib.request as u;u.urlopen(u.Request('https://rest.runpod.io/v1/pods/'+os.environ['RUNPOD_POD_ID'],"
-          "method='DELETE',headers={'Authorization':'Bearer '+os.environ.get('RUNPOD_API_KEY','')}),timeout=30)")
+    py = ("import os,urllib.request as u;u.urlopen(u.Request('https://api.runpod.io/v2/pods/'+os.environ['RUNPOD_POD_ID'],"
+          "method='DELETE',headers={'Authorization':'Bearer '+os.environ.get('RUNPOD_API_KEY',''),"
+          "'User-Agent':'parataxis/0.1'}),timeout=30)")
     guard = f"(sleep {int(max_seconds)}; python3 -c {shlex.quote(py)} >/dev/null 2>&1) &"
     return guard + " exec vllm serve " + " ".join(shlex.quote(a) for a in serve_args)
 
@@ -126,7 +128,15 @@ class RunPod:
         return self._req("GET", f"/pods/{pod_id}")
 
     def list(self) -> list[dict[str, Any]]:
-        return list(self._req("GET", "/pods") or [])
+        """Every pod, following v2's pagination (``pagination.nextCursor``)."""
+        pods: list[dict[str, Any]] = []
+        cursor = None
+        while True:
+            got = self._req("GET", "/pods" + (f"?cursor={urllib.parse.quote(cursor)}" if cursor else "")) or {}
+            pods += list(got.get("pods") or [])
+            cursor = (got.get("pagination") or {}).get("nextCursor")
+            if not cursor:
+                return pods
 
     def delete(self, pod_id: str) -> None:
         self._req("DELETE", f"/pods/{pod_id}")
@@ -140,10 +150,11 @@ def pod_body(name: str, key: str, *, image: str = DEFAULT_IMAGE, cloud: str = "C
     if cloud not in ("COMMUNITY", "SECURE"):
         raise ValueError("cloud is COMMUNITY or SECURE")
     env = {"VLLM_API_KEY": key, "HF_HUB_ENABLE_HF_TRANSFER": "1", **dict(extra_env or {})}
-    return {"name": name, "imageName": image, "gpuTypeIds": [GPU_5090], "gpuCount": 1, "cloudType": cloud,
-            "computeType": "GPU", "containerDiskInGb": int(disk_gb), "volumeInGb": 0, "ports": [f"{PORT}/http"],
-            "env": env, "dockerEntrypoint": ["bash", "-lc"],
-            "dockerStartCmd": [start_script(serve_args or vllm_args(), max_seconds)]}
+    # v2 create body: name, image, gpu {id, count}, cloud, disk (container disk, GB), ports, env (object),
+    # entrypoint and cmd in exec form (the entrypoint overrides the image's own)
+    return {"name": name, "image": image, "gpu": {"id": GPU_5090, "count": 1}, "cloud": cloud,
+            "disk": int(disk_gb), "ports": [f"{PORT}/http"], "env": env, "entrypoint": ["bash", "-lc"],
+            "cmd": [start_script(serve_args or vllm_args(), max_seconds)]}
 
 
 def endpoint(pod_id: str) -> str:
@@ -200,7 +211,7 @@ def create(rp: RunPod, name: str, *, max_hours: float, cap_usd: float = DEFAULT_
     fd = os.open(kp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w") as f:
         f.write(key)
-    rate = float(pod.get("costPerHr") or pod.get("adjustedCostPerHr") or assumed_rate)
+    rate = float(pod.get("cost") or assumed_rate)  # v2: the pod's hourly compute rate in USD
     ledger_append({"event": "created", "pod": pid, "name": name, "cost_per_hr": rate, "cloud": cloud,
                    "max_hours": max_hours, "image": body_kw.get("image", DEFAULT_IMAGE)}, ledger)
     if spent + max_hours * rate > cap_usd:  # the real price is higher than assumed
@@ -215,7 +226,7 @@ def terminate(rp: RunPod, pod_id: str, *, ledger: Path = LEDGER, reason: str = "
         try:
             rp.delete(pod_id)
             got = rp.get(pod_id)
-            if got is None or got.get("desiredStatus") == "TERMINATED":
+            if got is None or got.get("status") == "TERMINATED":
                 ledger_append({"event": "terminated", "pod": pod_id, "reason": reason}, ledger)
                 return
         except PodError:
@@ -246,9 +257,10 @@ def wait_ready(rp: RunPod, pod_id: str, *, url: str | None = None, timeout_s: fl
     t0, running_at = clock(), None
     while clock() - t0 < timeout_s:
         pod = rp.get(pod_id)
-        if pod is None or pod.get("desiredStatus") == "TERMINATED":
-            raise PodError(f"pod {pod_id} disappeared while starting")
-        if pod.get("desiredStatus") == "RUNNING" and running_at is None:
+        if pod is None or pod.get("status") in ("TERMINATED", "ERROR"):
+            terminate(rp, pod_id, ledger=ledger, reason="error while starting") if pod is not None else None
+            raise PodError(f"pod {pod_id} {'failed' if pod else 'disappeared'} while starting")
+        if pod.get("status") == "RUNNING" and running_at is None:
             running_at = clock()
         if _http(url + "/health", None)[0] == 200:
             code, body = _http(url + "/v1/models", key)
@@ -308,7 +320,7 @@ def watchdog(rp: RunPod, pod_id: str, *, idle_minutes: float = 10, max_hours: fl
 def reap(rp: RunPod, *, ledger: Path = LEDGER) -> list[str]:
     gone = []
     for pod in rp.list():
-        if str(pod.get("name", "")).startswith(NAME_PREFIX) and pod.get("desiredStatus") != "TERMINATED":
+        if str(pod.get("name", "")).startswith(NAME_PREFIX) and pod.get("status") != "TERMINATED":
             terminate(rp, str(pod["id"]), ledger=ledger, reason="reap")
             gone.append(str(pod["id"]))
     return gone
