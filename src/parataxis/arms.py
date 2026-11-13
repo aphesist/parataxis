@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from contraprova.harness.arms import TaskContext
 
-from .lanes import LOCAL_LANE_MAX_TOKENS, LOCAL_MODEL
+from .lanes import LOCAL_MODEL
 
 L1_ARM = "L1"
 LB_ARM = "Lb"
@@ -21,9 +21,12 @@ LOCAL_ARMS = (L1_ARM, LB_ARM)
 
 
 L1_TASK_SECONDS = 600.0  # the pre-registered 10-minute task cap: no retry starts after it
+# L1 writes the whole task in one reply. 8K (the lane cap) cannot hold the gold patch of 9 of the 37
+# main tasks even as compact SEARCH/REPLACE blocks; 16K holds all but 3 (PREREGISTRATION.md b.5).
+L1_MAX_TOKENS = 16_000
 
 
-def run_l1(h, ex, ts, split: str = "", *, model: str = LOCAL_MODEL, max_tokens: int = LOCAL_LANE_MAX_TOKENS,
+def run_l1(h, ex, ts, split: str = "", *, model: str = LOCAL_MODEL, max_tokens: int = L1_MAX_TOKENS,
            task_seconds: float | None = L1_TASK_SECONDS) -> bool:
     import time
 

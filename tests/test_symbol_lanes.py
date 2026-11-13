@@ -3,6 +3,8 @@ stray edit outside a lane's units is undone and counted; the planner sees large 
 
 import json
 
+import pytest
+
 from contraprova.harness.edits import diff_to_blocks, format_blocks, unified_patch
 from contraprova.harness.swepro_arms import ProFakeClient
 from contraprova.interfaces import Completion
@@ -120,7 +122,7 @@ def test_planner_sees_units_of_large_files_only_in_symbol_mode(tmp_path):
     h, _, _ = harness(tmp_path, {IID: ex})
     on = _planner_context(h, ex, ex.test_split, 8, True)
     off = _planner_context(h, ex, ex.test_split, 8, False)
-    assert "lib/m.py::f3" in on and "## Files and units" in on and '"units"' in on and '"merge"' in on
+    assert "lib/m.py::f3" in on and "## Files and units" in on and '"changes"' in on
     assert "lib/m.py::f3" not in off and "## Files and units" not in off
 
 
@@ -165,51 +167,99 @@ def _plan(*lanes):
     return "```json\n" + json.dumps({"lanes": list(lanes), "interfaces": [], "rationale": "r"}) + "\n```"
 
 
-def test_a_lane_holding_several_units_needs_a_stated_reason():
+def _changes(*changes, interfaces=()):
+    return "```json\n" + json.dumps({"changes": list(changes), "interfaces": list(interfaces), "rationale": "r"}) + "\n```"
+
+
+def test_the_kernel_packs_one_lane_per_listed_change():
     ex = _ex()
-    ts = ex.test_split
-    merged = {"lane_id": "L1", "goal": "both", "units": ["lib/m.py::first", "lib/m.py::second"]}
-    d = {"lane_id": "L2", "goal": "d", "files": ["lib/d.py"]}
-    bad = parse_plan(_plan(merged, d), ex, ts, max_lanes=8, symbol_lanes=True)
-    assert bad.plan is None and any("holds 2 units without a stated reason" in e for e in bad.errors)
-    vague = parse_plan(_plan({**merged, "merge": {"reason": "ordering", "why": "x"}}, d), ex, ts, max_lanes=8,
+    got = parse_plan(_changes({"units": ["lib/m.py::first"], "goal": "a", "provides": ["first(x)"]},
+                              {"units": ["lib/m.py::second"], "goal": "b", "uses": ["first(x)"]},
+                              {"units": ["lib/d.py"], "goal": "c"},
+                              interfaces=[{"symbol": "first", "signature": "first(x) -> int", "path": "lib/m.py",
+                                           "owner": "lib/m.py::first"}]),
+                     ex, ex.test_split, max_lanes=8, symbol_lanes=True)
+    assert got.plan is not None and got.plan.k == 3, got.errors
+    by_unit = {u: ln.lane_id for ln in got.plan.lanes for u in (*ln.units, *ln.files)}
+    assert len({by_unit["lib/m.py::first"], by_unit["lib/m.py::second"], by_unit["lib/d.py"]}) == 3
+    first = got.plan.lane(by_unit["lib/m.py::first"])
+    assert first.exports == ("first(x)",) and "lib/m.py::first: a" in first.goal
+    assert [i.owner for i in got.plan.interfaces if i.symbol == "first"] == [first.lane_id]
+    again = parse_plan(_changes({"units": ["lib/d.py"], "goal": "c"}, {"units": ["lib/m.py::second"], "goal": "b"},
+                                {"units": ["lib/m.py::first"], "goal": "a"}), ex, ex.test_split, max_lanes=8,
                        symbol_lanes=True)
-    assert vague.plan is None  # a reason needs a sentence
-    ok = parse_plan(_plan({**merged, "merge": {"reason": "ordering", "why": "second calls the new first"}}, d),
-                    ex, ts, max_lanes=8, symbol_lanes=True)
-    assert ok.plan is not None and ok.plan.lane("L1").merge == "ordering: second calls the new first"
-    cap = parse_plan(_plan({**merged, "merge": {"reason": "cap", "why": "too many units here"}}, d), ex, ts,
+    assert again.plan.k == 3  # deterministic packing, whatever the order
+
+
+def test_a_change_naming_several_units_stays_in_one_lane_and_the_count_is_capped():
+    src = "\n\n".join(f"def f{i}(x):\n    return x + {i}\n" for i in range(12))
+    ex = _ex({"lib/m.py": src}, {"lib/m.py": src.replace("return x + 1\n", "return x - 1\n")})
+    many = [{"units": [f"lib/m.py::f{i}"], "goal": "g"} for i in range(2, 12)]
+    got = parse_plan(_changes({"units": ["lib/m.py::f0", "lib/m.py::f1"], "goal": "move"}, *many), ex, ex.test_split,
                      max_lanes=8, symbol_lanes=True)
-    assert cap.plan is None and any('"cap" applies only' in e for e in cap.errors)
-    capped = parse_plan(_plan({**merged, "merge": {"reason": "cap", "why": "too many units here"}}, d), ex, ts,
-                        max_lanes=1, symbol_lanes=True)
-    assert not any("cap" in e for e in capped.errors)  # 3 units for 1 lane: cap is a valid reason
+    assert got.plan is not None and got.plan.k == 8
+    holder = [ln for ln in got.plan.lanes if "lib/m.py::f0" in ln.units]
+    assert len(holder) == 1 and "lib/m.py::f1" in holder[0].units
 
 
-def test_owning_a_listed_file_whole_is_a_merge():
+@pytest.mark.parametrize("changes, says", [
+    ([{"units": ["lib/m.py::nope"]}, {"units": ["lib/d.py"]}], "has no unit 'nope'"),
+    ([{"units": ["lib/m.py::first"]}, {"units": ["lib/m.py::first"]}, {"units": ["lib/d.py"]}], "listed in changes 1 and 2"),
+    ([{"units": ["lib/m.py::first"]}, {"units": ["tests/test_m.py"]}, {"units": ["lib/d.py"]}], "test file"),
+    ([{"units": ["lib/m.py::first"]}], "assigned to no lane"),
+    ([{"units": ["lib/m.py"]}, {"units": ["lib/m.py::first"]}, {"units": ["lib/d.py"]}], "both owned whole"),
+    ([], "non-empty"),
+])
+def test_bad_change_lists_are_refused(changes, says):
     ex = _ex()
-    whole = {"lane_id": "L1", "goal": "m", "files": ["lib/m.py"]}
-    d = {"lane_id": "L2", "goal": "d", "files": ["lib/d.py"]}
-    got = parse_plan(_plan(whole, d), ex, ex.test_split, max_lanes=8, symbol_lanes=True)
-    assert got.plan is None and any("lane L1 holds" in e for e in got.errors)
-    assert parse_plan(_plan(whole, d), ex, ex.test_split, max_lanes=8).plan is not None  # API-study mode unchanged
-    one_lane_each = parse_plan("```json\n" + json.dumps(PLAN) + "\n```", ex, ex.test_split, max_lanes=8,
-                               symbol_lanes=True)
-    assert one_lane_each.plan is not None and one_lane_each.plan.k == 3
+    got = parse_plan(_changes(*changes), ex, ex.test_split, max_lanes=8, symbol_lanes=True)
+    assert got.plan is None and any(says in e for e in got.errors), got.errors
 
 
 def test_module_lines_are_a_unit_a_lane_can_own(tmp_path):
-    from parataxis.lanes import Lane, planner_units, restrict_lane_files
+    from parataxis.lanes import planner_units, restrict_lane_files
 
     new_src = IMPORT_SRC.replace("import os", "import os\nimport re").replace("return y * 2", "return re or y")
     ex = _ex({"lib/m.py": IMPORT_SRC}, {"lib/m.py": new_src})
     assert [n for n, _ in planner_units("lib/m.py", IMPORT_SRC)] == ["first", "second", "<module>"]
-    plan = _plan({"lane_id": "L1", "goal": "import", "units": ["lib/m.py::<module>"]},
-                 {"lane_id": "L2", "goal": "second", "units": ["lib/m.py::second"]})
-    got = parse_plan(plan, ex, ex.test_split, max_lanes=8, symbol_lanes=True)
+    got = parse_plan(_changes({"units": ["lib/m.py::<module>"], "goal": "import"},
+                              {"units": ["lib/m.py::second"], "goal": "second"}),
+                     ex, ex.test_split, max_lanes=8, symbol_lanes=True)
     assert got.plan is not None and got.errors == ()
-    kept, rejected = restrict_lane_files(ex, got.plan.lane("L1"), {"lib/m.py": new_src})
+    mod = next(ln for ln in got.plan.lanes if "lib/m.py::<module>" in ln.units)
+    kept, rejected = restrict_lane_files(ex, mod, {"lib/m.py": new_src})
     assert "import re" in kept["lib/m.py"] and "return y * 2" in kept["lib/m.py"] and rejected
     h, _, _ = harness(tmp_path, {IID: ex})
     ctx = _planner_context(h, ex, ex.test_split, 8, True)
-    assert "lib/m.py::<module>" in ctx and "Give each unit its own lane" in ctx and "Use fewer lanes" not in ctx
+    assert "lib/m.py::<module>" in ctx and "Give each unit its own change" in ctx and "Use fewer lanes" not in ctx
+
+
+def test_an_edit_to_a_unit_no_lane_owns_is_counted_as_unlisted(tmp_path):
+    from parataxis.lanes import unowned_unit
+
+    ex = _ex()
+    plan = parse_plan(_changes({"units": ["lib/m.py::first"], "goal": "a"}, {"units": ["lib/d.py"], "goal": "d"}),
+                      ex, ex.test_split, max_lanes=8, symbol_lanes=True).plan
+    second_line = M_SRC.split("\n").index("    return y * 2  # second_marker") + 1
+    assert unowned_unit(ex, plan, "lib/m.py", second_line) == "lib/m.py::second"
+    assert unowned_unit(ex, plan, "lib/m.py", second_line - 7) is None  # first: owned
+
+
+def test_plans_only_logs_the_plan_and_a_replayed_plan_costs_the_preflight_nothing(tmp_path, monkeypatch):
+    from contraprova.harness.swepro_arms import ProFakeClient
+
+    from parataxis import lanes
+
+    ex = _ex()
+    exercises = {IID: ex}
+    cfg = LaneConfig(ladder=LOCAL_LADDER, max_lanes=8, symbol_lanes=True, plans_only=True)
+    h, _, client = harness(tmp_path, exercises, client=Scripted(exercises), cfg=cfg)
+    assert h.run_task("La", ex, ex.test_split, "lanes-probe") is False
+    h.log.verify()
+    assert len(events_of(h, "lane.planned")) == 1 and not events_of(h, "task.submitted")
+    assert all("## Request: lane plan" in c["prompt"] for c in client.calls)  # the planner only
+    count = lambda **kw: 1000  # noqa: E731
+    paid = lanes.lane_preflight(h, ex, ex.test_split, count, LaneConfig(ladder=LOCAL_LADDER, symbol_lanes=True))
+    monkeypatch.setenv("PARATAXIS_PLAN_REPLAY", str(tmp_path / "log.jsonl"))
+    free = lanes.lane_preflight(h, ex, ex.test_split, count, LaneConfig(ladder=LOCAL_LADDER, symbol_lanes=True))
+    assert paid.by_part["planner"] > 0 and free.by_part["planner"] == 0

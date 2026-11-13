@@ -49,7 +49,14 @@ the lane layer (`src/parataxis/lanes.py`, `lanes_detect.py`) was moved from cont
 1. **contract units below file level** (`src/parataxis/symbols.py`). a unit is a function, a class, or a method of a class over 120 lines. in yaml, xml, docs or unparsable code, a unit is a block of about 60 lines. each lane owns a set of units:
    - it sees them in full, plus an outline of the rest of its files (other units reduced to their first line, imports and module constants kept);
    - it sees the shared part: statement, requirements, interface, the outline of every scope file, its contract, the board and its visible tests.
-2. **lane count from the contract.** the planner sees every code file's units (and its module-level lines as `path::<module>`) and names the units to change. each unit gets its own lane, up to 8. units share a lane only when they must change together, and the lane then states why: `same-unit`, `definition-and-caller`, `ordering`, or `cap` (more than 8 units). `parse_plan` rejects a merge without a stated reason. a change crossing adjacent units is in scope for a lane that owns all of them; blank lines go with the units next to them.
+2. **lane count from the contract.** the planner sees every code file's units, including its module-level lines as `path::<module>`.
+   - **the change list:** it returns a list of changes, one per unit to change, and is told to list every unit it might need: no lane can edit a unit nobody listed.
+   - **packing:** the kernel packs the changes (`plan_symbol_lanes`). the lane count is the number of changes, capped at 8, and units are packed largest first under a per-lane token target (24K by default). a change naming several units stays in one lane.
+   - **the scope gate:**
+     - a change crossing adjacent units is in scope for a lane that owns all of them;
+     - blank lines go with the units next to them;
+     - each insertion point has exactly one owning span.
+   - **counting:** an edit to a unit no lane owns is undone and counted as `unlisted_unit`.
 3. **interface round.** this is a kernel step with no model call. the planner's frozen signatures and every symbol in the task's interface field go on the board, together with each lane's provides and needs. a lane that needs a change writes an interface request, which is logged, rejected and counted.
 4. **scope gate on spans.** every changed line of a lane's edit must fall inside a span it owns. an insertion may also sit directly after an owned span, so a lane can add a helper below its function. created files must be in the lane's contract. out-of-scope edits are rejected before the merge and counted as clashes, as in the api study.
 5. **governed merge.** the lanes' edits are merged and the merge is gated: `T0.scope`, `T0.edits`, `T0.interfaces`, visible tests, private tests. there is no same-vendor reviewer by default, because of the 2 false blocks above.

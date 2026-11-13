@@ -12,6 +12,10 @@ local model is priced at $0, and lanes may own units of a file (symbol-level lan
 8). Pair it with ``--client parataxis.local:LocalRoleClients`` (local lanes
 over HTTPS to the pod's vLLM, the Opus planner through the Claude API).
 
+``--plans-only`` (with ``--local --lanes --arms La``) buys each task's plan and stops there: the log
+holds the plans and frozen interfaces, no lane request is sent and no pod is needed. Later passes replay
+them (``PARATAXIS_PLAN_REPLAY``).
+
 ``--edit-format units|search`` picks the workers' edit format. ``units`` (the default with ``--local``,
 PREREGISTRATION.md b.6) adds UNIT/AFTER blocks that replace a whole function, method or class by name
 (:mod:`parataxis.unit_edits`); ``search`` is contraprova's SEARCH/REPLACE format alone, as calibrated
@@ -26,11 +30,13 @@ import sys
 
 import parataxis.lanes as lanes  # noqa: F401  (must precede the harness import)
 
-# The lane pre-flight's expected planner output per plan. Calibration's 12 Opus plans fit
-# 957 + 209 x k output tokens (k = lanes). Under the units rule (one lane per touched unit group,
-# up to 8; PREREGISTRATION.md b.5) the dry planner gives k = 8 on every probe task, so 957 + 209 x 8,
-# rounded up. It was 1,199 (the API study's median, at k of 1 to 4) for the first calibration.
-LOCAL_PLAN_OUT = 2600
+# The lane pre-flight's expected planner output per plan, under the change-list schema
+# (PREREGISTRATION.md b.5): about 700 tokens for the interfaces, rationale and JSON, plus about 65
+# per change (a unit ref and a goal of at most 25 words), at a median of about 12 touched unit
+# groups per probe task (the dry planner's count). An estimate, not a measurement: the first
+# calibration's plans (another schema, k of 1 to 4) fit 957 + 209 x k. The budget guard caps the
+# real spend before every request whatever this says.
+LOCAL_PLAN_OUT = 1500
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -47,6 +53,9 @@ def main(argv: list[str] | None = None) -> int:
         del args[i:i + 2]
         if edit_format not in ("search", "units"):
             raise SystemExit("--edit-format must be search or units")
+    plans_only = "--plans-only" in args
+    if plans_only:
+        args.remove("--plans-only")
     local = "--local" in args
     if local:
         edit_format = edit_format or "units"
@@ -60,7 +69,7 @@ def main(argv: list[str] | None = None) -> int:
         swepro_run.LaneConfig = functools.partial(lanes.LaneConfig, ladder=lanes.LOCAL_LADDER,
                                                   lane_max_tokens=lanes.LOCAL_LANE_MAX_TOKENS,
                                                   concurrency=concurrency, symbol_lanes=True,
-                                                  task_seconds=600.0)
+                                                  task_seconds=600.0, plans_only=plans_only)
     if edit_format == "units":
         from . import unit_edits
 

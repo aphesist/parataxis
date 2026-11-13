@@ -157,6 +157,9 @@ class LaneConfig:
     # A task stops starting new rounds once this many seconds have passed since it began (the
     # pre-registered 10-minute cap of the local track); None: no cap (the API study).
     task_seconds: float | None = None
+    # Buy the plan and stop: the task logs its plan and frozen interfaces, then ends with no lane
+    # request (no GPU needed). Later runs replay the plans (PARATAXIS_PLAN_REPLAY).
+    plans_only: bool = False
 
     def __post_init__(self) -> None:
         models = [self.planner_model, *(m for _, m, _ in self.ladder)]
@@ -176,7 +179,8 @@ class LaneConfig:
                 "lane_prompt_max_tokens": self.lane_prompt_max_tokens,
                 **({"concurrency": self.concurrency} if self.concurrency != 1 else {}),
                 **({"symbol_lanes": True} if self.symbol_lanes else {}),
-                **({"task_seconds": self.task_seconds} if self.task_seconds else {})}
+                **({"task_seconds": self.task_seconds} if self.task_seconds else {}),
+                **({"plans_only": True} if self.plans_only else {})}
 
 
 # ------------------------------------------------------------------ prompts
@@ -258,40 +262,30 @@ Reply with one JSON object in a ```json code block and nothing else, in this sch
 {schema}"""
 
 PLAN_SCHEMA_UNITS = PLAN_SCHEMA.replace('"files": ["path"],', '"files": ["path"], "units": ["path::name"],')
-PLAN_SCHEMA_UNITS_MERGE = PLAN_SCHEMA_UNITS.replace(
-    '"tests": ["visible test names, copied exactly"]}]',
-    '"tests": ["visible test names, copied exactly"],\n            "merge": {"reason": "only when the lane holds several units", '
-    '"why": "one sentence"}}]')
+PLAN_SCHEMA_CHANGES = """{"changes": [{"units": ["path::name"], "goal": "what changes in it, at most 25 words",
+              "provides": ["name(params) other changes use from it"], "uses": ["name(params) it uses from other changes"]}],
+ "interfaces": [{"symbol": "name", "signature": "name(params) -> type", "path": "file", "owner": "path::name of the unit defining it"}],
+ "rationale": "one sentence"}"""
 
-# Why a lane may hold several units (PREREGISTRATION.md: the lane count comes from the contract units).
-MERGE_REASONS = ("same-unit", "definition-and-caller", "ordering", "cap")
-
+# The local track's planner request (PREREGISTRATION.md: the lane count comes from the contract units).
+# The planner lists the units to change; the kernel packs them into lanes (plan_symbol_lanes).
 PLAN_REQUEST_UNITS = """
 ## Request: lane plan
-Plan this change as parallel lanes. Each lane is done by a separate programmer, in parallel, who sees in full only \
-the units the lane owns and an outline of everything else. The number of lanes comes from the units to change.
+List the changes this task needs, one per unit. The kernel then packs the units into up to {max_lanes} lanes, \
+each done by a separate programmer in parallel who sees in full only the units of its lane and an outline of \
+everything else. A unit that no change lists cannot be edited by anyone, so list every unit the task might need.
 
 Rules:
-- Name every unit the change needs, from the list below: each function, method or class to change (path::name), \
-the module-level lines of a file when they must change (path::<module>: imports, constants, top-level code), each \
-whole file listed without units, and each new file. Name only units that must change; units nobody owns stay \
-unchanged. Every file below needs at least one lane. Never assign a test file.
-- Give each unit its own lane, up to {max_lanes} lanes. Put several units in one lane only when they must change \
-together, for one of these reasons:
-  - "same-unit": they are parts of one unit (for example a class header and its methods);
-  - "definition-and-caller": a definition and its only caller, written in one step;
-  - "ordering": one cannot be written before the other is done (a hard ordering dependency);
-  - "cap": the change needs more than {max_lanes} units, so some must share a lane.
-  Such a lane states its reason in "merge": {{"reason": "<one of the four>", "why": "<one sentence>"}}. Owning a \
-file with listed units whole (in "files") merges all of its units and needs a reason too. A plan that merges units \
-without a stated reason is rejected.
-- A lane that owns some units of a file lists them in "units" and does not list that file in "files". Each unit \
-belongs to at most one lane; a file is either owned whole by one lane or split by units, never both. A lane sees \
-its units in full and an outline of the rest of their file, and may add new helpers directly below its units.
-- For each lane give its goal (at most 80 words), the symbols it may change, the interfaces it provides to other \
-lanes and those it uses from them, and the visible tests (names exactly as listed above) it should help make pass.
-- Freeze every interface that crosses lanes (a symbol one lane defines or changes and another lane uses) with its \
-exact signature (Python: name(params) -> type; JavaScript/TypeScript: name(params)), its file and the lane that \
+- A change names units from the list below: a function, method or class (path::name), the module-level lines of \
+a file (path::<module>: imports, constants, top-level code), a file listed as one unit (path), or a new file \
+(path). Give each unit its own change. Name several units in one change only when one edit must span them (code \
+moved or deleted across adjacent units); they then stay in one lane.
+- Every file below needs at least one change. A file is listed whole or by its units, never both. Never list a \
+test file. A lane may add new helpers directly below its units.
+- For each change give its goal (at most 25 words) and, when other changes depend on it, the names it provides \
+and uses.
+- Freeze every interface that crosses changes (a symbol one change defines or changes and another uses) with its \
+exact signature (Python: name(params) -> type; JavaScript/TypeScript: name(params)), its file and the unit that \
 owns it. Include every function, method or class named in the task's Interface section.
 
 ## Files and units
@@ -299,6 +293,9 @@ owns it. Include every function, method or class named in the task's Interface s
 
 Reply with one JSON object in a ```json code block and nothing else, in this schema:
 {schema}"""
+
+PACK_TARGET_TOKENS = 24_000  # per-lane prompt target of the kernel's packing (design.md)
+PACK_SHARED_TOKENS = 6_000  # the shared part of a lane prompt, as the fit study measured it (median 5,754)
 
 UNIT_LIST_MIN_LINES = 150  # non-code files at least this long get their line blocks listed for the planner
 UNIT_LIST_MAX = 60  # at most this many units listed per file
@@ -340,7 +337,6 @@ class Lane:
     tests: tuple[str, ...] = ()  # visible tests assigned by the plan
     # "path::unit" ids: in these paths (also in ``allowed``) the lane owns only these units
     units: tuple[str, ...] = ()
-    merge: str = ""  # why this lane holds several units ("reason: why"), when it does
 
     @property
     def files(self) -> tuple[str, ...]:
@@ -357,7 +353,7 @@ class Lane:
         return {"lane_id": self.lane_id, "allowed": list(self.allowed), "new_files": list(self.new_files),
                 "goal": self.goal, "symbols": list(self.symbols), "exports": list(self.exports),
                 "imports": list(self.imports), "tests": list(self.tests),
-                **({"units": list(self.units)} if self.units else {}), **({"merge": self.merge} if self.merge else {})}
+                **({"units": list(self.units)} if self.units else {})}
 
 
 @dataclass(frozen=True)
@@ -494,6 +490,88 @@ def seed_interfaces(planned: Sequence[Interface], task_iface: Sequence[Interface
     return tuple(out)
 
 
+def changes_to_lanes(d: Mapping[str, Any], ex: ProExercise, max_lanes: int, errors: list[str]) -> dict[str, Any]:
+    """The planner's change list packed into lanes by the kernel (deterministic): every change is a
+    group of spans that stays in one lane; :func:`~parataxis.symbols.plan_symbol_lanes` makes
+    ``k = min(max_lanes, changes)`` lanes, largest first, each toward :data:`PACK_TARGET_TOKENS`.
+    Interface owners given as a unit become the lane holding that unit. Errors go to ``errors``."""
+    from .symbols import Span, plan_symbol_lanes
+
+    existing, new = set(ex.context.files), set(ex.context.new_files)
+    raw = d.get("changes")
+    if not isinstance(raw, list) or not raw:
+        errors.append("'changes' must be a non-empty list")
+        return {}
+    groups: list[list[Span]] = []
+    meta: list[dict[str, Any]] = []
+    seen: dict[str, int] = {}
+    names: dict[str, set[str]] = {}
+    for n, c in enumerate(raw, 1):
+        if not isinstance(c, dict):
+            errors.append(f"change {n} is not an object")
+            continue
+        refs = list(dict.fromkeys(_strs(c.get("units")) or _strs(c.get("unit"))))
+        if not refs:
+            errors.append(f"change {n} names no unit")
+            continue
+        spans: list[Span] = []
+        for ref in refs:
+            path, sep, name = ref.partition("::")
+            if ref in seen:
+                errors.append(f"{ref} is listed in changes {seen[ref]} and {n}; list each unit once")
+                continue
+            seen[ref] = n
+            if sep:
+                if path not in existing:
+                    errors.append(f"change {n}: {path} is not one of the existing files to change")
+                    continue
+                src = ex.context.files[path]
+                if path not in names:
+                    names[path] = {u.name for u in _units(path, src, split_class_lines=SPLIT_CLASS_LINES)}
+                    if _module_spans(path, src, split_class_lines=SPLIT_CLASS_LINES):
+                        names[path].add(MODULE)
+                if name not in names[path]:
+                    errors.append(f"change {n}: {path} has no unit {name!r}")
+                    continue
+                spans += spans_for(path, src, [name], split_class_lines=SPLIT_CLASS_LINES)
+            elif ref in existing:
+                spans.append(Span(ref, 1, ex.context.files[ref].count("\n") + 1, "", "file"))
+            elif ref in new:
+                spans.append(Span(ref, 1, 1, "", "new"))
+            elif is_test_path(ref):
+                errors.append(f"change {n}: {ref} is a test file; changes never touch tests")
+            else:
+                errors.append(f"change {n}: {ref} is not one of the files to change")
+        if spans:
+            groups.append(spans)
+            meta.append({"refs": refs, "goal": str(c.get("goal") or "").strip()[:400],
+                         "provides": _strs(c.get("provides")), "uses": _strs(c.get("uses"))})
+    if errors:
+        return {}
+    packed = plan_symbol_lanes([s for g in groups for s in g], dict(ex.context.files), shared_tokens=PACK_SHARED_TOKENS,
+                               target_tokens=PACK_TARGET_TOKENS, max_lanes=max_lanes,
+                               split_class_lines=SPLIT_CLASS_LINES, groups=groups)
+    lanes, lane_of = [], {}
+    for n, sl in enumerate(packed.lanes, 1):
+        lid = f"L{n}"
+        mine = [m for g, m in zip(groups, meta) if any(sp in sl.owned for sp in g)]
+        refs = [r for m in mine for r in m["refs"]]
+        for r in refs:
+            lane_of[r] = lid
+        lanes.append({
+            "lane_id": lid, "goal": " | ".join(f"{', '.join(m['refs'])}: {m['goal']}" for m in mine)[:2000],
+            "units": [r for r in refs if "::" in r], "files": [r for r in refs if "::" not in r],
+            "symbols": [r.split("::", 1)[1].split(".")[-1] for r in refs if "::" in r and not r.endswith(MODULE)],
+            "provides": [x for m in mine for x in m["provides"]], "uses": [x for m in mine for x in m["uses"]],
+            "tests": []})
+    ifaces = []
+    for item in d.get("interfaces", []) if isinstance(d.get("interfaces"), list) else []:
+        if isinstance(item, dict):
+            owner = str(item.get("owner") or "").strip()
+            ifaces.append({**item, "owner": lane_of.get(owner) or lane_of.get(str(item.get("path") or "").strip())})
+    return {"lanes": lanes, "interfaces": ifaces, "rationale": d.get("rationale", "")}
+
+
 def parse_plan(text: str, ex: ProExercise, ts: ProTestSplit, *, max_lanes: int = MAX_LANES,
                lane_tokens=None, lane_prompt_max_tokens: int = LANE_PROMPT_MAX_TOKENS,
                symbol_lanes: bool = False) -> PlanParse:
@@ -509,6 +587,10 @@ def parse_plan(text: str, ex: ProExercise, ts: ProTestSplit, *, max_lanes: int =
     new = set(ex.context.new_files)
     task_files = existing | new
     visible = set(ts.visible)
+    if symbol_lanes and "changes" in d and "lanes" not in d:
+        d = changes_to_lanes(d, ex, max_lanes, errors)
+        if errors:
+            return PlanParse(None, tuple(errors))
     raw = d.get("lanes")
     if not isinstance(raw, list) or not raw:
         return PlanParse(None, ("'lanes' must be a non-empty list",))
@@ -526,7 +608,6 @@ def parse_plan(text: str, ex: ProExercise, ts: ProTestSplit, *, max_lanes: int =
                 unit_cache[path].add(MODULE)
         return unit_cache[path]
 
-    merges: list[tuple[str, int, Any]] = []  # (lane, units it holds, its "merge" field)
     for n, item in enumerate(raw, 1):
         if not isinstance(item, dict):
             errors.append(f"lane {n} is not an object")
@@ -560,35 +641,17 @@ def parse_plan(text: str, ex: ProExercise, ts: ProTestSplit, *, max_lanes: int =
                 owners.setdefault(f, []).append(lid)
         if not files and not lane_units:
             errors.append(f"lane {lid} has no files")
-        if symbol_lanes:
-            held = len(lane_units) + len([f for f in files if f in new])
-            held += sum(max(1, len(planner_units(f, ex.context.files[f]))) for f in files if f in existing)
-            merges.append((lid, held, item.get("merge")))
         tests = _strs(item.get("tests"))
         unknown = [t for t in tests if t not in visible]
         if unknown:
             warnings.append(f"lane {lid}: {len(unknown)} test name(s) not among the visible tests were dropped")
-        m = item.get("merge") if isinstance(item.get("merge"), dict) else {}
-        merge = f"{str(m.get('reason') or '').strip()}: {str(m.get('why') or '').strip()}"[:400] if m else ""
         lanes.append(Lane(lid, tuple(sorted({*(f for f in files if f in existing), *unit_paths})),
                           tuple(sorted(f for f in files if f in new)),
                           str(item.get("goal") or "").strip()[:2000], _strs(item.get("symbols")),
                           _strs(item.get("provides") or item.get("exports")), _strs(item.get("uses") or item.get("imports")),
-                          tuple(t for t in tests if t in visible), tuple(lane_units), merge))
+                          tuple(t for t in tests if t in visible), tuple(lane_units)))
     if len(raw) > max_lanes:
         errors.append(f"{len(raw)} lanes; at most {max_lanes} are allowed")
-    total = sum(n for _, n, _ in merges)
-    for lid, n, m in merges:  # the lane count comes from the units: merging needs a stated reason
-        if n <= 1:
-            continue
-        reason = str(m.get("reason") or "").strip() if isinstance(m, dict) else ""
-        why = str(m.get("why") or "").strip() if isinstance(m, dict) else ""
-        if reason not in MERGE_REASONS or len(why.split()) < 3:
-            errors.append(f"lane {lid} holds {n} units without a stated reason: give \"merge\": "
-                          f"{{\"reason\": one of {', '.join(MERGE_REASONS)}, \"why\": one sentence}}, or split it")
-        elif reason == "cap" and total <= max_lanes:
-            errors.append(f"lane {lid}: reason \"cap\" applies only when the change needs more than {max_lanes} units "
-                          f"(this plan names {total})")
     for f, ls in sorted(owners.items()):
         if len(ls) > 1:
             errors.append(f"{f} is assigned to lanes {', '.join(ls)}; each file belongs to exactly one lane")
@@ -824,6 +887,22 @@ def lane_files_view(ex: ProExercise, lane: Lane) -> dict[str, str]:
         else:
             out[p] = ex.context.files[p]
     return out
+
+
+def unowned_unit(ex: ProExercise, plan: "LanePlan", path: str, line: int) -> str | None:
+    """The unit (``path::name``) holding base ``line`` of ``path`` when no lane of the plan owns it
+    (the planner did not list it), else None. Blank lines and whole-file owners never count."""
+    if path not in ex.context.files or any(path in ln.allowed and path not in ln.unit_paths for ln in plan.lanes):
+        return None
+    from .symbols import file_spans
+
+    base = ex.context.files[path]
+    lines = base.split("\n")
+    if not 1 <= line <= len(lines) or not lines[line - 1].strip():
+        return None
+    owned = {u for ln in plan.lanes for u in ln.units}
+    hit = next((s for s in file_spans(path, base, split_class_lines=SPLIT_CLASS_LINES) if s.contains(line)), None)
+    return hit.unit_id if hit is not None and hit.unit_id not in owned else None
 
 
 def restrict_lane_files(ex: ProExercise, lane: Lane, files: Mapping[str, str]) -> tuple[dict[str, str], list[dict]]:
@@ -1185,10 +1264,10 @@ def _planner_context(h, ex: ProExercise, ts: ProTestSplit, max_lanes: int, symbo
         for name, size in items[:UNIT_LIST_MAX]:
             lines.append(f"  - {p}::{name} ({size} lines)")
         if len(items) > UNIT_LIST_MAX:
-            lines.append(f"  - ... {len(items) - UNIT_LIST_MAX} more units (name them as path::name, or own the file whole)")
+            lines.append(f"  - ... {len(items) - UNIT_LIST_MAX} more units (name them as path::name, or list the file whole)")
     lines += [f"- {p} (new file)" for p in sorted(ex.context.new_files)]
     return h.lead_context(ex, ts) + PLAN_REQUEST_UNITS.format(max_lanes=max_lanes, files="\n".join(lines) or "(none)",
-                                                              schema=PLAN_SCHEMA_UNITS_MERGE)
+                                                              schema=PLAN_SCHEMA_CHANGES)
 
 
 def plan_lanes(h, ex: ProExercise, ts: ProTestSplit, tid: str, cfg: LaneConfig,
@@ -1296,6 +1375,8 @@ def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfi
     base_names = set().union(*defined_names(ex.context.files).values()) if ex.context.files else set()
     _emit_clashes(h, tid, plan_id, overlapping_scopes(pinfo["raw_lanes"]), None, "plan")
     _emit_clashes(h, tid, plan_id, unresolved_uses(plan.lanes, frozen, base_names), None, "plan")
+    if cfg.plans_only:
+        return False
 
     # gates for this task: D's, with T0.interfaces before any test
     gates = h.gates
@@ -1340,10 +1421,17 @@ def run_la(h, ex: ProExercise, ts: ProTestSplit, split: str = "", cfg: LaneConfi
             kept, rejected = restrict_lane_files(ex, st.lane, sub.files)
             if rejected:
                 sub = replace(sub, files=kept)
-                _emit_clashes(h, tid, plan_id, [Clash("scope_violation", (st.lane.lane_id,),
-                                                      {"mode": "governed", "action": "undone", "level": "unit",
-                                                       "ranges": rejected[:20], "n": len(rejected)})],
-                              rnd, "governed")
+                # a range inside a unit that no lane owns: the plan did not list a unit the change needed
+                unlisted = [r for r in rejected if unowned_unit(ex, plan, r["path"], r["line"])]
+                other = [r for r in rejected if r not in unlisted]
+                for kind, rs in (("unlisted_unit", unlisted), ("scope_violation", other)):
+                    if rs:
+                        _emit_clashes(h, tid, plan_id, [Clash(kind, (st.lane.lane_id,),
+                                                              {"mode": "governed", "action": "undone", "level": "unit",
+                                                               "ranges": rs[:20], "n": len(rs),
+                                                               **({"units": sorted({unowned_unit(ex, plan, r["path"], r["line"])
+                                                                                    for r in rs})} if kind == "unlisted_unit" else {})})],
+                                      rnd, "governed")
         if before is not None and dict(sub.files) == before:
             # fixation: a lane run again after blame (with the gate feedback, and in Lb the board)
             # submits exactly what it had: the correction was ignored
@@ -1634,6 +1722,21 @@ class LanePreflightRow:
     by_part: Mapping[str, float]
 
 
+_REPLAYED: dict[str, frozenset[str]] = {}
+
+
+def _replayed_plans() -> frozenset[str]:
+    """Exercise ids whose plans ``PARATAXIS_PLAN_REPLAY`` replays (they cost the planner nothing)."""
+    import os
+
+    paths = os.environ.get("PARATAXIS_PLAN_REPLAY", "")
+    if paths not in _REPLAYED:
+        from .local import logged_plans
+
+        _REPLAYED[paths] = frozenset(logged_plans([p for p in paths.split(",") if p])) if paths else frozenset()
+    return _REPLAYED[paths]
+
+
 def lane_preflight(h, ex: ProExercise, ts: ProTestSplit, count_tokens, cfg: LaneConfig | None = None, *, k: int = 3,
                    a: LaneAssumptions | None = None, table: str | None = None) -> LanePreflightRow:
     """Counted (free ``count_tokens``) planner prompt and lane prompts under a naive by-file split
@@ -1678,6 +1781,8 @@ def lane_preflight(h, ex: ProExercise, ts: ProTestSplit, count_tokens, cfg: Lane
     }
     mt, pmt = cfg.lane_max_tokens, cfg.planner_max_tokens
     worst = usd(cfg.planner_model, p_in, pmt) + usd(cfg.planner_model, p_in + pmt, pmt)
+    if ex.id in _replayed_plans():  # the plan is replayed from a log at zero tokens (PlanReplay)
+        parts["planner"], worst = 0.0, 0.0
     for n in lane_in:
         for _, model, _ in cfg.ladder:
             n2 = n + a.retry_extra

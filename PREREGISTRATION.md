@@ -196,6 +196,22 @@ these hashes describe the calibrated code. they are re-frozen after b.6, and a c
    - the prompt asks for UNIT only on units of up to about 60 lines, or ones mostly rewritten, and SEARCH/REPLACE for small changes inside long units. this keeps replies no longer than SEARCH/REPLACE: replaying the gold patches of the 37 main tasks, unit replies were 1.0× (median) and 1.1× (p90) the SEARCH/REPLACE length for L1. without the rule they were 1.14× and 1.68×.
    - it applies to L1, La and Lb alike, including their retry and repair texts. the calibration logs above used `--edit-format search`.
 7. **Lb notes:** the blackboard note now strips edit blocks in their canonical form. the earlier pattern missed them. Lb has not run yet.
+8. **the lane count from the contract units (calibration-stage change, approved; b.6).** the planner prompt as first built left the count to opus ("1 to 8 lanes … fewer when the files are tightly coupled"). now it follows part a and design.md:
+   - **what the planner sees:** the units of every code file with two or more units, plus its module-level lines as `path::<module>`.
+   - **what it returns:** a list of changes, one per unit. it is told to list every unit it might need, because a unit no change lists cannot be edited.
+   - **packing:** the kernel packs the changes deterministically (`symbols.plan_symbol_lanes`): `k = min(8, changes)`, largest first, toward a 24K-token prompt per lane.
+   - **multi-unit changes:** a change naming several units (one edit spanning them, such as code moved across adjacent units) stays in one lane.
+   - **interface owners:** the planner names them as units, and they become the lanes holding those units.
+   - **unlisted units:** an edit to a unit no lane owns is undone by the span gate and counted as its own clash kind, `unlisted_unit`.
+9. **the span scope gate, for wide fan-out:**
+   - one hunk may change several adjacent units the lane owns;
+   - blank lines go with the units next to them;
+   - every insertion point has exactly one owning span (inside it, directly below it, or in the blank lines below a unit), so two lanes never both insert the same code.
+
+   without these, the gold patch could not be split into lane shares on 6 of the 12 probe tasks (moves and deletions across units, and new code inserted between units).
+10. **L1 output cap:** 16K tokens (approved). L1 is not a lane, and 8K cannot hold the gold patch of 9 of the 37 main tasks.
+11. **the lane pre-flight's planner output estimate:** 1,500 tokens per plan under the change list. this is an estimate: about 700 for the interfaces, rationale and JSON, plus about 65 per change, at a median of about 12 changes per probe task (the dry planner's count). it was 1,199 for the first calibration's schema. the budget guard caps the real spend whatever the estimate says.
+12. **plans bought without a pod:** `--plans-only` buys each probe task's plan and stops. the calibration passes replay them, and the lane pre-flight prices a replayed plan at $0.
 
 ### b.6 required before the freeze: the failed checks
 
@@ -216,8 +232,13 @@ these hashes describe the calibrated code. they are re-frozen after b.6, and a c
   - 37 main tasks with L1 and La (194 unit blocks).
 - **found while building: L1's 8K output cap is too small for its task.** written as compact SEARCH/REPLACE blocks, the gold patch alone exceeds 8K tokens on 9 of the 37 main tasks for L1 (6 at 12K, 3 at 16K; characters / 3.6). only 5 of 111 La lane replies do, because lanes split the work.
   - part a fixes 8K per lane request; L1's 8K was an implementation choice (it reused the lane constant).
-  - proposed: **L1 gets 16K output tokens**, decided before the repeat calibration.
-- **open: the lane count.** part a takes the lane count "from the contract units". the planner prompt as built leaves the count to opus (1 to 8, "fewer lanes when the files are tightly coupled"), and makes symbol units optional. the calibration plans had 1–4 lanes (10 of 12 had 1 or 2), and only 2 of 25 lanes owned units. the fix and its cost are proposed separately; it changes the plans, so the 12 probe plans would be bought again.
+  - decided: **L1 gets 16K output tokens** (b.5 item 10).
+- **the lane count** did not follow part a: the calibration plans had 1–4 lanes (10 of 12 had 1 or 2), and only 2 of 25 lanes owned units. fixed before the repeat (b.5 items 8 and 9).
+- **the repeat calibration, as approved (conditional go):**
+  1. buy the 12 probe plans under the change list (`--plans-only`), within the $1.80 cumulative calibration planner cap ($0.7942 spent). the pre-flight expects $0.821, $0.985 with the 1.2 margin.
+  2. if the median k of the real plans is at least 3: L1 (units format, 16K), La2 twice, La4 and La8 on those plans. per session: ≤ $3.00 gpu (ledger), 3.5 h, community cloud, 15-minute idle terminate, then reap and verify. a pass that cannot finish inside the limits is not started.
+  3. if the median k is below 3: stop after the plans and report what opus produced.
+  4. noise is judged on La2 × 2 (T2). main-run throughput repeats run only if stop rule 5 fires on the main run, and then for La only (T1). the $10 gpu cap stays: if the plan cannot fit it, stop and report.
 
 ### b.7 main-run planner cost and the proposed cap
 
@@ -227,3 +248,9 @@ these hashes describe the calibrated code. they are re-frozen after b.6, and a c
   - $2.867 with the 1.2 margin.
 - **calibration's real spend** was 6% above its pre-flight, which puts the main run at about $2.53.
 - **proposed cap:** **$2.90** for the main run, so the pre-flight fits with its 1.2 margin ($2.867 ≤ $2.90). with calibration's $0.794 the track's planner total would be at most $3.69, against the $3.00 in part a's stop rule 2. the repeat calibration replays plans and adds nothing.
+- **after the change list (b.5 item 8), re-run 2026-11-13:**
+  - the main pre-flight with the new prompt expects **$2.611**, $3.134 with the 1.2 margin (input counted, a median of 9,609 tokens per plan; output at 1,500 per plan, b.5 item 11);
+  - proposed main-run cap: **$3.30**, pre-approved up to that amount;
+  - the track's planner total would be at most $1.80 + $3.30 = $5.10.
+
+  the real plans of the repeat calibration measure the output per plan. if they run above the estimate, the main estimate and cap are revised before the main run.

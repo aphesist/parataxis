@@ -249,11 +249,8 @@ def test_unit_groups_join_units_one_hunk_crosses():
     assert unit_groups("m.py", THREE, imp) == [["<module>"], ["b"]]
 
 
-def test_the_dry_planner_gives_one_lane_per_unit_group_with_valid_reasons():
-    import json
-
-    from parataxis.dry import lane_share, unit_plan
-    from parataxis.lanes import parse_plan
+def test_the_dry_planner_lists_one_change_per_unit_group_and_shares_follow_the_packing():
+    from parataxis.dry import lane_share, packed_lanes, unit_plan
 
     from test_lanes import make_ex
 
@@ -262,15 +259,14 @@ def test_the_dry_planner_gives_one_lane_per_unit_group_with_valid_reasons():
         .replace("return x + 9\n", "return x - 9\n")
     iid = "instance_ansible__ansible-" + "%040x" % 7 + "-vnan"
     ex = make_ex(iid, orig={"lib/m.py": src}, new={"lib/m.py": new}, interface="", f2p=["tests/test_m.py::t"])
-    plan = unit_plan(ex, 8)
-    assert [ln["units"] for ln in plan["lanes"]] == [["lib/m.py::f1"], ["lib/m.py::f5"], ["lib/m.py::f9"]]
-    got = parse_plan("```json\n" + json.dumps(plan) + "\n```", ex, ex.test_split, max_lanes=8, symbol_lanes=True)
-    assert got.plan is not None and got.plan.k == 3
-    assert "x - 5" in lane_share(ex, plan["lanes"][1]) and "x - 1" not in lane_share(ex, plan["lanes"][1])
-    capped = unit_plan(ex, 2)
-    assert len(capped["lanes"]) == 2 and [ln.get("merge", {}).get("reason") for ln in capped["lanes"]] == [None, "cap"]
-    assert parse_plan("```json\n" + json.dumps(capped) + "\n```", ex, ex.test_split, max_lanes=2,
-                      symbol_lanes=True).plan is not None
+    changes = unit_plan(ex)
+    assert [c["units"] for c in changes["changes"]] == [["lib/m.py::f1"], ["lib/m.py::f5"], ["lib/m.py::f9"]]
+    lanes = packed_lanes(ex, changes)
+    assert len(lanes) == 3
+    lid = next(k for k, v in lanes.items() if v["units"] == ["lib/m.py::f5"])
+    share = lane_share(ex, lanes[lid])
+    assert "x - 5" in share and "x - 1" not in share
+    assert len(packed_lanes(ex, changes, max_lanes=2)) == 2
 
 
 def test_every_insertion_point_has_exactly_one_owner():

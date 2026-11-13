@@ -353,18 +353,22 @@ def lane_prompt_tokens(owned: Sequence[Span], sources: Mapping[str, str], shared
 
 def plan_symbol_lanes(owned_units: Sequence[Span], sources: Mapping[str, str], *, shared_tokens: int,
                       target_tokens: int = 24_000, max_lanes: int = 8, chars_per_token: float = 3.0,
-                      split_class_lines: int = 120, keep_classes_together: bool = False) -> SymbolPlan:
-    """Pack contract units into lanes. The lane count is the number of contract units, capped at
-    ``max_lanes``; units are grouped when ``keep_classes_together`` (methods of one class in one
-    group). Groups are assigned largest first to the lane with the smallest prompt so far (LPT),
+                      split_class_lines: int = 120, keep_classes_together: bool = False,
+                      groups: Sequence[Sequence[Span]] | None = None) -> SymbolPlan:
+    """Pack contract units into lanes. The lane count is the number of contract units (or of
+    ``groups``, spans that must stay in one lane), capped at ``max_lanes``; units are grouped when
+    ``keep_classes_together`` (methods of one class in one group). Groups are assigned largest first to the lane with the smallest prompt so far (LPT),
     where a lane's prompt counts the outline of the rest of each file it touches."""
     unit_index = {p: units(p, s, split_class_lines=split_class_lines) for p, s in sources.items()}
-    groups: dict[str, list[Span]] = {}
-    for u in owned_units:
-        key = u.unit_id
-        if keep_classes_together and u.kind in ("method", "class-header"):
-            key = f"{u.path}::{u.name.split('.')[0]}"
-        groups.setdefault(key, []).append(u)
+    if groups is not None:  # the caller's groups (spans that must stay in one lane), in order
+        groups = {f"g{i:04d}": list(g) for i, g in enumerate(groups) if g}
+    else:
+        groups = {}
+        for u in owned_units:
+            key = u.unit_id
+            if keep_classes_together and u.kind in ("method", "class-header"):
+                key = f"{u.path}::{u.name.split('.')[0]}"
+            groups.setdefault(key, []).append(u)
     k = max(1, min(max_lanes, len(groups)))
 
     def size(g: list[Span]) -> int:

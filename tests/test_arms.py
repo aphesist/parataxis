@@ -22,7 +22,7 @@ def test_l1_solves_in_one_attempt(tmp_path, exercises):
     o = _outcome(h)
     assert o["solved"] and o["shipped"] and o["attempts"] == 1
     assert {c["model"] for c in client.calls} == {LOCAL_MODEL}
-    assert all(c["max_tokens"] == 8000 for c in client.calls)
+    assert all(c["max_tokens"] == 16000 for c in client.calls)
 
 
 def test_l1_retries_once_with_the_gate_feedback(tmp_path, exercises):
