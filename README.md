@@ -10,9 +10,10 @@ the engine is [contraprova](https://github.com/aphesist/contraprova), pinned as 
 
 > on one consumer gpu, do parallel local lanes under contracts and a test-gated merge solve more tasks than an ungated merge of the same lane outputs, and how many test-passing tokens per second does that give?
 
-> **status:** phase 1, no spending yet.
-> - **done:** the lane layer moved here from contraprova with its history, and the full suite passes (54 passed at 8729726, with contraprova installed at the pinned commit; run in the contraprova working session, because this session cannot execute contraprova). symbol-level lanes (below file level) are built and tested offline. a $0 fit study ran on the 37 tasks of contraprova's lanes study.
-> - **not yet:** no local model has run. the local-track plan ([docs/local-plan.md](docs/local-plan.md), about $10 of rented gpu) waits for approval.
+> **status:** paused. the local track stopped after calibration, by the owner's decision ([results/local](results/local/README.md), exploratory).
+> - **done:** the lane layer, symbol-level lanes, the local arms and the pod tooling are built and tested (about 140 tests). day 1 and the calibration ran on one rented rtx 5090: gpu $4.02, planner $1.59.
+> - **found:** on 10–12 probe tasks the local lanes rarely beat the ungated merge (pooled 4 runs each way; the api study had 8 to 0). wide fan-out (6–8 lanes) solved fewer tasks than 1–4 lanes, most plausibly because of how the change was cut into units. aggregate throughput stayed flat at about 220–240 tok/s across concurrency.
+> - **not done:** the main run. at these rates the primary had about 0.2% power ([power note](results/local-calib3/power-note.md)).
 
 ## what it starts from
 
@@ -40,7 +41,7 @@ contraprova's pre-registered contract lanes study, on 37 fresh multi-file swe-be
 ## pre-registration
 
 - **the starting evidence was pre-registered.** contraprova's [PREREG.md](results/swepro-lanes/PREREG.md) was written and committed before any paid request of the main run, on 2026-11-12 (contraprova commit 1ed672e); its probe has its own ([PREREG-probe.md](results/swepro-lanes/PREREG-probe.md)). the hashes it freezes refer to contraprova's paths, not to this repository's copy of the lane layer ([provenance](results/swepro-lanes/PROVENANCE.md)).
-- **the local track's protocol is pre-registered** ([PREREGISTRATION.md](PREREGISTRATION.md), part a), committed before any gpu rental or paid request of the local track. part b, the freeze of code and prompt hashes, n and the serving configuration, is appended before the main run, after the day-1 smoke test and the calibration on the probe tasks.
+- **the local track's protocol is pre-registered** ([PREREGISTRATION.md](PREREGISTRATION.md), part a), committed before any gpu rental or paid request of the local track. part b, the freeze, was proposed after calibration and never frozen. the track stopped there, and the closing status section says why.
 
 ## honesty table
 
@@ -52,15 +53,22 @@ every claim this project makes, and what kind of evidence stands behind it today
 | haiku lanes match contraprova's cascade in solve rate and cost | **measured** (inconclusive; n=37, both near ceiling) | 36/37 vs 34/37, +5.4 points [0.0, +13.5], p = 0.50; cost per solved task ratio 1.07 [0.62, 1.76] |
 | symbol-level lanes fit a 24K per-lane prompt on these tasks, up to 8 lanes | estimated (exact count_tokens counts with claude's tokenizer, a deterministic count with no sampling and so no ci; the local tokenizer is not yet counted) | [results/symbol-lanes-fit](results/symbol-lanes-fit/README.md): 37/37 within 24K, largest lane median 10.2K, max 17.1K (21.6K when 8 lanes cover every unit) |
 | the lane layer behaves as it did in contraprova after the move | built | same logic, absolute imports and a module-routing hook; the full suite (`tests/test_lanes.py`, `tests/test_route.py`, `tests/test_symbols.py`) passed, 54 of 54, at 8729726 in a fresh venv with contraprova at 403caf2. it was run in the contraprova working session, because this session cannot execute contraprova |
-| symbol-level lanes solve as many tasks as whole-file lanes | **hypothesis** | la with symbol lanes vs the api study's file lanes, same tasks |
-| governed beats shadow with a local 27b lane worker | **hypothesis** | la vs la-shadow on the 37 tasks, one rtx 5090 |
-| parallel local lanes beat one local worker in solve rate or wall time | **hypothesis** | la vs l1 |
+| symbol-level lanes solve as many tasks as whole-file lanes | **measured** (exploratory; calibration, n = 10–12; no ci claimed) | local model, probe tasks: wide symbol plans (k 6–8) solved 0–2 of 10; narrow plans (k ≤ 4, mostly whole files) solved 4 of 12, and 3 of the same 10 ([results/local](results/local/README.md)). scope violations and unlisted units are associated with the failures |
+| governed beats shadow with a local 27b lane worker | **measured** (exploratory; calibration, n = 10–12; no ci claimed) | pooled la vs la-shadow on probe tasks: 2 vs 2 discordant (wide, 40 runs) and 2 vs 2 (narrow, 36 runs). the 37-task main run was not run: about 0.2% power at these rates ([power note](results/local-calib3/power-note.md)) |
+| parallel local lanes beat one local worker in solve rate or wall time | **measured** (exploratory; calibration, n = 10–12; no ci claimed) | L1 4/12 and 4/10 against la 4/12 (narrow) and 0–2/10 (wide). L1 failed the format-compliance and output-cap rules after two format changes ([results/local](results/local/README.md)) |
 | a shared text blackboard beats separate lane contexts | **hypothesis** | lb-text vs la |
 | a shared kv cache (hogwild!-style) works under governance | **hypothesis** (stretch) | lb-kv on the probe tasks against a matched la on the same model, exploratory |
-| test-gated tok/s on one rtx 5090 is a useful fraction of raw tok/s | **hypothesis** | both reported per arm |
+| test-gated tok/s on one rtx 5090 is a useful fraction of raw tok/s | **measured** (exploratory; calibration, n = 10) | test-gated 1.8–6.7 tok/s against raw 130–232. aggregate throughput was flat at about 220–240 tok/s from 2 to 8 concurrent lanes, while the per-lane rate fell about 1/n ([results/local](results/local/README.md)) |
 | results generalise beyond swe-bench pro | **hypothesis** | out of scope for now |
 
-rows move from hypothesis or estimated to measured only when a result with its confidence interval is committed under `results/`.
+rows move from hypothesis or estimated to measured only when a result with its confidence interval is committed under `results/`. the local rows are the exception, marked exploratory: calibration evidence on 10–12 probe tasks, descriptive, with no significance claimed.
+
+## next
+
+the calibration points to two directions before any local main run:
+
+- **decomposition.** a lane may also edit the units its change depends on, not only the units it owns. the merge arbitrates overlapping edits at merge time, instead of the span gate undoing them up front. scope violations and unlisted units were the clashes associated with failure ([backlog](docs/backlog.md)).
+- **keeping the gpu busy during merge and verify.** between rounds the gpu idles while the harness merges, gates and runs the docker verifier, so throughput did not rise with more lanes. this is stage 1 of the engine backlog, the lane-aware scheduler ([backlog](docs/backlog.md)).
 
 ## quick start
 
@@ -82,7 +90,10 @@ a dry run reads the swe-bench pro task data from `data/`, as contraprova's [swe-
 
 ## the data
 
-the logs, reports and analyses are under [`results/`](results): `swepro-lanes` is contraprova's study, copied unchanged ([provenance](results/swepro-lanes/PROVENANCE.md)); `symbol-lanes-fit` is this project's $0 fit study. the logs hold `contents_sha256` fields, never repository file contents. `contraprova verify results/swepro-lanes/main/log.jsonl` checks the chain and replays every event.
+the logs, reports and analyses are under [`results/`](results):
+- `swepro-lanes`: contraprova's study, copied unchanged ([provenance](results/swepro-lanes/PROVENANCE.md));
+- `symbol-lanes-fit`: this project's $0 fit study;
+- `local` and `local-*`: the local track (its report, day 1 and the calibration sessions). the logs hold `contents_sha256` fields, never repository file contents. `contraprova verify results/swepro-lanes/main/log.jsonl` checks the chain and replays every event.
 
 ## layout
 

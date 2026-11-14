@@ -283,3 +283,19 @@ these hashes describe the calibrated code. they are re-frozen after b.6, and a c
   - the track's planner total would be at most $1.80 + $3.30 = $5.10.
 
   the real plans of the repeat calibration measure the output per plan. if they run above the estimate, the main estimate and cap are revised before the main run.
+
+## closing status (2026-11-14)
+
+> **status:** the local track stopped after calibration, by the owner's decision (option a), and is paused. part b was proposed and never frozen. no main run took place, and nothing above this section was rewritten after the fact.
+
+- **why it stopped:**
+  - **power:** at the calibration's rates, the pre-registered primary (La vs La-shadow on the 37 main tasks, exact mcnemar) expected about 4 discordant tasks and had about 0.2% power ([power note](results/local-calib3/power-note.md)).
+  - **descriptive only:** a main run could only have been descriptive.
+- **what the calibration found** (exploratory, 10–12 probe tasks; [results/local](results/local/README.md)):
+  - **discordance:** pooled La vs La-shadow, 4 runs each way, against 8 to 0 in the cloud api study;
+  - **wide fan-out:** at k ≈ 8 it solved fewer tasks than the first calibration's k ≤ 4 plans. scope violations and unlisted units are associated with the failures;
+  - **throughput:** aggregate throughput stayed flat across n while the per-lane rate fell about 1/n;
+  - **L1:** failed the format-compliance and output-cap rules after two format changes.
+- **n:** the choice rule gave n = 2 (n = 8 preempted). it was never frozen.
+- **spend:** gpu $4.02 by the ledger ($4.07 billed); planner $1.59. both under their caps.
+- **if the track resumes:** it starts from a new part b, after the changes in the README's "next". the calibration logs here are evidence for that, not part of a confirmatory run.
